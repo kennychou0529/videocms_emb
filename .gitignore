@@ -31,3 +31,7 @@
 # Debug files
 *.dSYM/
 *.su
+Debug
+*.sdf
+*.suo
+*.user
