@@ -9,15 +9,75 @@
 #define AV_ERR_FILE_EMPTY			-5
 #define AV_ERR_PARSE_JSON_FAILED	-6
 #define AV_ERR_OPEN_JSON_FAILED		-7
+#define AV_ERR_WRITE_FILE_FAILD		-8
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
+#define	OUT_DEV_TYPE_VGA  1 << 0
+#define	OUT_DEV_TYPE_HDMI  1 << 1
+#define	OUT_DEV_TYPE_BT1120  1 << 2
+
+typedef enum _resulotion_type_e
+{
+	RESULOTION_TYPE_1920X1080 = 0,
+	RESULOTION_TYPE_1440X900 = 1,
+	RESULOTION_TYPE_1280X1024 = 2,
+	RESULOTION_TYPE_1280X720 = 3,
+	RESULOTION_TYPE_1280X960 = 4,
+	RESULOTION_TYPE_3840X2160 = 5,
+}resulotion_type_t;
+
+typedef enum _frame_rate_type_e
+{
+	FRAME_RATE_TYPE_60 = 0,
+	FRAME_RATE_TYPE_50 = 1,
+	FRAME_RATE_TYPE_30 = 2,
+	FRAME_RATE_TYPE_25 = 3,
+}frame_rate_type_t;
+
+typedef enum _pixel_fmt_type_e
+{
+	PIXEL_FMT_TYPE_YUV422 = 0,
+	PIXEL_FMT_TYPE_YUV420 = 1,
+}pixel_fmt_type_t;
+
+typedef struct _vo_cfg_s
+{
+	int m_dev_id;							//_设备ID：0-DH0  1-DH1  2-SD0
+	unsigned int m_out_dev_type;			//_输出设备类型
+	resulotion_type_t m_resulotion_type;	//_输出分辨率类型
+	frame_rate_type_t m_frame_rate_type;	//_输出设备帧率类型
+	pixel_fmt_type_t m_pixel_fmt_type;		//_输出设备YUV格式类型
+	unsigned int m_bg_color;				//_画面背景颜色
+}av_vo_cfg_t, *pav_vo_cfg_t;
+
+typedef struct _vpss_cfg_s
+{
+	unsigned int m_max_width;				//_vpss最大图像宽度
+	unsigned int m_max_height;				//_vpss最大图像高度
+	pixel_fmt_type_t m_pixel_fmt_type;		//_输出设备YUV格式类型
+	char m_en_ie;							//_启用ie功能
+	char m_en_dci;							//_启用dci功能
+	char m_en_nr;							//_启用NR
+	char m_en_hist;							//_启用hist
+	char m_en_es;							//_启用es
+	char m_contrast;						//_contrast
+	char m_dieStrength;						//_dieStrength
+	char m_ieStrength;						//_ieStrength
+	char m_sfStrength;						//_sfStrength
+	char m_cfStrength;						//_CfStrength
+	char m_cTfStrength;						//_CTfStrength
+	char m_cvbsStrength;					//_cvbsStrength
+	char m_deMotionBlurring;				//_DeMotionBlurring
+}vpss_cfg_t, *pvpss_cfg_t;
+
 typedef struct __av_platform_cfg_s
 {
-
+	av_vo_cfg_t m_vo_cfg_ui;							//_UI输出设备配置	
+	av_vo_cfg_t m_vo_cfg_live;							//_LIVE输出设备配置
 }av_platform_cfg_t;
 
 typedef struct _av_platform_ctx_s
@@ -36,7 +96,10 @@ typedef struct _av_platform_ctx_s
 	av_platform_cfg_t m_cfg;				//_av platform cfg
 }av_platform_ctx_t, *pav_platform_ctx_t;
 
-#ifdef 
+int av_startup();
+int  av_shutdown();
+
+#ifdef __cplusplus
 }
 #endif
 

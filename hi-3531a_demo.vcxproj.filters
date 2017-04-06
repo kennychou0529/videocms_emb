@@ -38,5 +38,8 @@
     <ClInclude Include="thirtyparty\cjson\cJSON.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="core\core_global_def.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

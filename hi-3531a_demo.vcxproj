@@ -81,6 +81,7 @@
     <ClCompile Include="thirtyparty\cjson\cJSON.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="core\core_global_def.h" />
     <ClInclude Include="core\core_manager.h" />
     <ClInclude Include="hi-3531a\av_process.h" />
     <ClInclude Include="includes.h" />
