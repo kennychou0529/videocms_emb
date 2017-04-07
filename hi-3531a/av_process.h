@@ -16,6 +16,8 @@ extern "C"
 {
 #endif
 
+#include "../thirtyparty/pthread_win32/pthread.h"
+
 #define	OUT_DEV_TYPE_VGA  1 << 0
 #define	OUT_DEV_TYPE_HDMI  1 << 1
 #define	OUT_DEV_TYPE_BT1120  1 << 2
@@ -44,7 +46,15 @@ typedef enum _pixel_fmt_type_e
 	PIXEL_FMT_TYPE_YUV420 = 1,
 }pixel_fmt_type_t;
 
-typedef struct _vo_cfg_s
+typedef enum _vpss_chn_type_e
+{
+	VPSS_CHN_TYPE_MAJOR = 0,
+	VPSS_CHN_TYPE_MINOR = 1,
+	VPSS_CHN_TYPE_MINOR2 = 2,
+	VPSS_CHN_TYPE_RENDER = 3,
+}vpss_chn_type_t;
+
+typedef struct _vo_dev_cfg_s
 {
 	int m_dev_id;							//_设备ID：0-DH0  1-DH1  2-SD0
 	unsigned int m_out_dev_type;			//_输出设备类型
@@ -52,13 +62,26 @@ typedef struct _vo_cfg_s
 	frame_rate_type_t m_frame_rate_type;	//_输出设备帧率类型
 	pixel_fmt_type_t m_pixel_fmt_type;		//_输出设备YUV格式类型
 	unsigned int m_bg_color;				//_画面背景颜色
-}av_vo_cfg_t, *pav_vo_cfg_t;
+}av_vo_dev_cfg_t, *pav_vo_dev_cfg_t;
+
+typedef struct _vo_chn_cfg_s
+{
+	int m_chn_id;							//_chn id
+	char m_layer_id;						//_显示层次
+	int m_x;								//_起始点x坐标
+	int m_y;								//_起始点y坐标
+	int m_width;							//_区域宽
+	int m_height;							//_区域高
+	char m_deflicker;						//_抗闪烁使能
+}vo_chn_cfg_t, *pvo_chn_cfg_t;
 
 typedef struct _vpss_cfg_s
 {
+	unsigned int m_group_number;			//_vpss的group号
 	unsigned int m_max_width;				//_vpss最大图像宽度
 	unsigned int m_max_height;				//_vpss最大图像高度
 	pixel_fmt_type_t m_pixel_fmt_type;		//_输出设备YUV格式类型
+	char m_en_die_mode;						//_启用die模式
 	char m_en_ie;							//_启用ie功能
 	char m_en_dci;							//_启用dci功能
 	char m_en_nr;							//_启用NR
@@ -76,8 +99,12 @@ typedef struct _vpss_cfg_s
 
 typedef struct __av_platform_cfg_s
 {
-	av_vo_cfg_t m_vo_cfg_ui;							//_UI输出设备配置	
-	av_vo_cfg_t m_vo_cfg_live;							//_LIVE输出设备配置
+	av_vo_dev_cfg_t m_vo_cfg_ui;			//_UI输出设备配置
+	//vo_chn_cfg_t m_vo_chn_cfg_ui;			//_UI输出VO通道
+	vpss_cfg_t m_vpss_cfg_ui;				//_UI输出设备VPSS参数
+	av_vo_dev_cfg_t m_vo_cfg_live;			//_LIVE输出设备配置
+	//vo_chn_cfg_t m_vo_chn_cfg_live;			//_LIVE输出VO通道
+	vpss_cfg_t m_vpss_cfg_live;				//_LIVE输出设备VPSS参数
 }av_platform_cfg_t;
 
 typedef struct _av_platform_ctx_s
@@ -93,7 +120,10 @@ typedef struct _av_platform_ctx_s
 	char m_venc_chn_ddr_id;					//_venc的chn内存id
 	char m_vpss_group_ddr_id;				//_vpss的group内存id
 	char m_vdec_chn_ddr_id;					//_vdec的chn内存id
+	char m_app_start_ok;					//_系统已经启动完成
+	pthread_mutex_t m_mtx;					//_互斥锁
 	av_platform_cfg_t m_cfg;				//_av platform cfg
+
 }av_platform_ctx_t, *pav_platform_ctx_t;
 
 int av_startup();
