@@ -76,11 +76,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="core\core_channel.cpp" />
     <ClCompile Include="core\core_manager.cpp" />
     <ClCompile Include="hi-3531a\av_process.cpp" />
     <ClCompile Include="thirtyparty\cjson\cJSON.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="core\core_channel.h" />
     <ClInclude Include="core\core_global_def.h" />
     <ClInclude Include="core\core_manager.h" />
     <ClInclude Include="hi-3531a\av_process.h" />

@@ -24,6 +24,9 @@
     <ClCompile Include="thirtyparty\cjson\cJSON.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="core\core_channel.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hi-3531a\av_process.h">
@@ -39,6 +42,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="core\core_global_def.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="core\core_channel.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

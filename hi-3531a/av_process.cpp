@@ -13,8 +13,149 @@ typedef struct _av_vpss_group_info_s
 
 int av_init_cfg();
 
+VI_DEV_ATTR_S DEV_ATTR_7441_BT1120_STANDARD_BASE =
+{
+	/*interface mode*/
+	VI_MODE_BT1120_STANDARD,
+	/*work mode, 1/2/4 multiplex*/
+	VI_WORK_MODE_1Multiplex,
+	/* r_mask    g_mask    b_mask*/
+	{0xFF000000,    0xFF0000},
+
+	/* for single/double edge, must be set when double edge*/
+	VI_CLK_EDGE_SINGLE_UP,
+
+	/*AdChnId*/
+	{-1, -1, -1, -1},
+	//{0,0,0,0},
+	/*enDataSeq, just support yuv*/
+	VI_INPUT_DATA_UVUV,
+
+	/*sync info*/
+	{
+		/*port_vsync   port_vsync_neg     port_hsync        port_hsync_neg        */
+		VI_VSYNC_PULSE, VI_VSYNC_NEG_HIGH, VI_HSYNC_VALID_SINGNAL,VI_HSYNC_NEG_HIGH,VI_VSYNC_NORM_PULSE,VI_VSYNC_VALID_NEG_HIGH,
+
+			/*timing info*/
+			/*hsync_hfb    hsync_act    hsync_hhb*/
+		{0,            1920,        0,
+		/*vsync0_vhb vsync0_act vsync0_hhb*/
+		0,            1080,        0,
+		/*vsync1_vhb vsync1_act vsync1_hhb*/
+		0,            0,            0}
+	},
+		/*whether use isp*/
+		VI_PATH_BYPASS,
+		/*data type*/
+		VI_DATA_TYPE_YUV
+
+};
+
+VI_DEV_ATTR_S DEV_ATTR_TP2823_720P_1MUX_BASE =
+{
+	/*interface mode*/
+	VI_MODE_BT656,
+	/*work mode, 1/2/4 multiplex*/
+	VI_WORK_MODE_1Multiplex,
+	/* r_mask    g_mask    b_mask*/
+	{0xFF000000,    0x0},
+
+	/* for single/double edge, must be set when double edge*/
+	VI_CLK_EDGE_SINGLE_UP,
+
+	/*AdChnId*/
+	{-1, -1, -1, -1},
+	/*enDataSeq, just support yuv*/
+	VI_INPUT_DATA_YVYU,
+	/*sync info*/
+	{
+		/*port_vsync   port_vsync_neg     port_hsync        port_hsync_neg        */
+		VI_VSYNC_FIELD, VI_VSYNC_NEG_HIGH, VI_HSYNC_VALID_SINGNAL,VI_HSYNC_NEG_HIGH,VI_VSYNC_VALID_SINGAL,VI_VSYNC_VALID_NEG_HIGH,
+
+			/*timing info*/
+			/*hsync_hfb    hsync_act    hsync_hhb*/
+		{0,            0,        0,
+		/*vsync0_vhb vsync0_act vsync0_hhb*/
+		0,            0,        0,
+		/*vsync1_vhb vsync1_act vsync1_hhb*/
+		0,            0,            0}
+	},
+		/*whether use isp*/
+		VI_PATH_BYPASS,
+		/*data type*/
+		VI_DATA_TYPE_YUV
+};
+
 av_platform_ctx_t g_av_platform_ctx;
 static av_vpss_group_info_t s_vpss_grp_arry[VPSS_MAX_GRP_NUM];
+static int av_set_vi_bt656(vi_cfg_t vi_cfg, VI_DEV_ATTR_S * stViDevAttr)
+{
+	if (!stViDevAttr)
+	{
+		return AV_ERR_INVALID_PARAM;
+	}
+
+	memcpy(stViDevAttr,&DEV_ATTR_TP2823_720P_1MUX_BASE,sizeof(stViDevAttr));
+
+	stViDevAttr->au32CompMask[0] = vi_cfg->m_mask0;
+	stViDevAttr->au32CompMask[1] = vi_cfg->m_mask1;
+
+
+	if(vi_cfg.m_width >= 1920 && vi_cfg.m_fps > 30 )
+	{
+		stViDevAttr->enClkEdge = VI_CLK_EDGE_DOUBLE;
+	}
+	else
+	{
+		stViDevAttr->enClkEdge = VI_CLK_EDGE_SINGLE_UP;
+	}
+
+	stViDevAttr->enIntfMode = VI_MODE_BT656;
+
+	stViDevAttr->stSynCfg.stTimingBlank.u32HsyncAct = vi_cfg.m_width;
+	stViDevAttr->stSynCfg.stTimingBlank.u32VsyncVact = vi_cfg.m_height;
+
+	return AV_OK;
+}
+
+static int av_set_vi_bt1120(vi_cfg_t vi_cfg, VI_DEV_ATTR_S * stViDevAttr)
+{
+	if (!stViDevAttr)
+	{
+		return AV_ERR_INVALID_PARAM;
+	}
+
+	memcpy(stViDevAttr,&DEV_ATTR_7441_BT1120_STANDARD_BASE,sizeof(stViDevAttr));
+
+	stViDevAttr->au32CompMask[0] = vi_cfg.m_mask0;
+	stViDevAttr->au32CompMask[1] = vi_cfg.m_mask1;
+
+
+	if(vi_cfg.m_width == 1920 && vi_cfg.m_interface == BT1120I && vi_cfg.m_fps > 30)
+	{
+		stViDevAttr->enClkEdge = VI_CLK_EDGE_DOUBLE;
+	}
+	else if(vi_cfg.m_width > 1920 && vi_cfg.m_interface == BT1120S)
+	{
+		stViDevAttr->enClkEdge = VI_CLK_EDGE_DOUBLE;
+	}
+	else
+	{
+		stViDevAttr->enClkEdge = VI_CLK_EDGE_SINGLE_UP;
+	}
+
+	if(vi_cfg.m_interface == BT1120I)
+		stViDevAttr->enIntfMode = VI_MODE_BT1120_INTERLEAVED;
+	else if (vi_cfg.m_interface == BT1120S)
+		stViDevAttr->enIntfMode = VI_MODE_BT1120_STANDARD;
+	else
+		stViDevAttr->enIntfMode = VI_MODE_BT1120_INTERLEAVED;
+
+	stViDevAttr->stSynCfg.stTimingBlank.u32HsyncAct = vi_cfg.m_width;
+	stViDevAttr->stSynCfg.stTimingBlank.u32VsyncVact = vi_cfg.m_height;
+
+	return AV_OK;
+}
 
 int av_cal_blk_size(int width, int height, int align_width, int pix_fmt, int comp_fmt)
 {
@@ -354,6 +495,136 @@ int av_stop_vo_chn(vo_chn_cfg_t vo_chn_cfg, VO_LAYER vo_layer)
 	return AV_OK;
 }
 
+int av_start_vi(vi_cfg_t vi_cfg)
+{
+	VI_DEV ViDev;
+	VI_CHN ViChn;
+	HI_S32 s32Ret;
+	HI_S32 s32Ret;
+	VI_DEV_ATTR_S stViDevAttr;
+	VI_DEV ViDev;
+	HI_S32 s32Ret;
+	VI_CHN_ATTR_S stChnAttr;
+	VI_CHN ViChn;
+
+	memset(&stViDevAttr,0,sizeof(stViDevAttr));
+	ViDev = vi_cfg.m_videv;
+	ViChn = vi_cfg.m_vichn;
+	if(vi_cfg.m_interface == BT1120S ||
+		vi_cfg.m_interface == BT1120I)
+	{
+		av_set_vi_bt1120(vi_cfg, &stViDevAttr);
+	}
+	else
+	{
+		av_set_vi_bt656(vi_cfg, &stViDevAttr);
+	}
+
+
+	s32Ret = HI_MPI_VI_SetDevAttr(ViDev, &stViDevAttr);
+	if (s32Ret != HI_SUCCESS)
+	{
+		DBG_PRT("HI_MPI_VI_SetDevAttr[%d] failed with %#x!\n",ViDev, s32Ret);
+		return AV_FALSE;
+	}
+
+	s32Ret = HI_MPI_VI_EnableDev(ViDev);
+	if (s32Ret != HI_SUCCESS)
+	{
+		DBG_PRT("HI_MPI_VI_EnableDev failed with %#x!\n", s32Ret);
+		return AV_FALSE;
+	}
+
+	stChnAttr.stCapRect.u32Width = vi_cfg.m_width;
+	stChnAttr.stCapRect.u32Height = vi_cfg.m_height;
+
+	/* to show scale. this is a sample only, we want to show dist_size = D1 only */
+	stChnAttr.stDestSize.u32Width = vi_cfg.m_width;
+	stChnAttr.stDestSize.u32Height = vi_cfg.m_height;
+
+	stChnAttr.enCapSel = VI_CAPSEL_BOTH;
+	if(vi_cfg.m_colorspace == YUV420)
+	{
+		stChnAttr.enPixFormat = PIXEL_FORMAT_YUV_SEMIPLANAR_420;
+	}
+	else if(vi_cfg.m_colorspace == YUV422)
+	{
+		stChnAttr.enPixFormat = PIXEL_FORMAT_YUV_SEMIPLANAR_422;
+	}
+	else
+	{
+		stChnAttr.enPixFormat = SAMPLE_PIXEL_FORMAT;   /* sp420 or sp422 */
+	}
+
+
+	stChnAttr.bMirror = (VI_CHN_SET_MIRROR & vi_cfg.m_mirrorflip)?HI_TRUE:HI_FALSE;
+	stChnAttr.bFlip = (VI_CHN_SET_FILP & vi_cfg.m_mirrorflip)?HI_TRUE:HI_FALSE;
+	if (vi_cfg.m_dst_fps != -1 && vi_cfg.m_src_fps != -1)
+	{
+		stChnAttr.s32SrcFrameRate = vi_cfg.m_src_fps;
+		stChnAttr.s32DstFrameRate = vi_cfg.m_dst_fps;
+	}
+	else
+	{
+		stChnAttr.s32SrcFrameRate = -1;
+		stChnAttr.s32DstFrameRate = -1;
+	}
+
+	if(vi_cfg.m_interlaced == 0)
+	{
+		stChnAttr.enScanMode = VI_SCAN_PROGRESSIVE;
+	}
+	else
+	{
+		stChnAttr.enScanMode = VI_SCAN_INTERLACED;
+	}
+	s32Ret = HI_MPI_VI_SetChnAttr(ViChn, &stChnAttr);
+	if (s32Ret != HI_SUCCESS)
+	{
+		DBG_PRT("failed with %#x!\n", s32Ret);
+		return AV_FALSE;
+	}
+
+	s32Ret = HI_MPI_VI_EnableChn(ViChn);
+	if (s32Ret != HI_SUCCESS)
+	{
+		DBG_PRT("failed with %#x!\n", s32Ret);
+		return AV_FALSE;
+	}
+
+	return AV_OK;
+}
+
+int av_stop_vi(vi_cfg_t vi_cfg)
+{
+	VI_DEV ViDev;
+	VI_CHN ViChn;
+	HI_S32 s32Ret;
+	HI_S32 s32Ret;
+	VI_DEV_ATTR_S stViDevAttr;
+	VI_DEV ViDev;
+	HI_S32 s32Ret;
+	VI_CHN_ATTR_S stChnAttr;
+	VI_CHN ViChn;
+
+	ViDev = vi_cfg.m_videv;
+	ViChn = vi_cfg.m_vichn;
+
+	s32Ret = HI_MPI_VI_DisableChn(ViChn);
+	if (HI_SUCCESS != s32Ret)
+	{
+		DBG_PRT("SAMPLE_COMM_VI_StopChn failed with %#x\n",s32Ret);
+		//return AV_FALSE;
+	}
+	s32Ret = HI_MPI_VI_DisableDev(ViDev);
+	if (HI_SUCCESS != s32Ret)
+	{
+		DBG_PRT("SAMPLE_COMM_VI_StopDev failed with %#x\n", s32Ret);
+		//return AV_FALSE;
+	}
+	return AV_OK;
+}
+
 int av_start_vpss(vpss_cfg_t vpss_cfg, VPSS_GRP vpss_grp, VPSS_CHN vpss_chn)
 {
 	VPSS_GRP VpssGrp = vpss_grp;
@@ -642,11 +913,11 @@ int av_save_cfg()
 	cJSON_AddNumberToObject(json_tmp, "vpss_en_ie_ui", g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_en_ie);
 	cJSON_AddNumberToObject(json_tmp, "vpss_en_nr_ui", g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_en_nr);
 	//cJSON_AddNumberToObject(json_tmp, "vpss_group_number_ui", g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_group_number);
+	cJSON_AddNumberToObject(json_tmp, "vpss_sfStrength_ui", g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_sfStrength);
 	cJSON_AddNumberToObject(json_tmp, "vpss_ieStrength_ui", g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_ieStrength);
 	cJSON_AddNumberToObject(json_tmp, "vpss_max_height_ui", g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_height);
 	cJSON_AddNumberToObject(json_tmp, "vpss_max_width_ui", g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_width);
 	cJSON_AddNumberToObject(json_tmp, "vpss_pixel_fmt_type_ui", g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_pixel_fmt_type);
-	cJSON_AddNumberToObject(json_tmp, "vpss_sfStrength_ui", g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_sfStrength);
 	
 
 	cJSON_AddNumberToObject(json_tmp, "dev_id_live", g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_dev_id);
@@ -737,64 +1008,90 @@ int av_load_cfg()
 	if (json_tmp)
 		g_av_platform_ctx.m_major_width_max = json_tmp->valueint;
 	else
+	{
+		g_av_platform_ctx.m_major_width_max = 1080;
 		cJSON_AddNumberToObject(json_root, "major_width_max", g_av_platform_ctx.m_major_width_max);
+	}
 	json_tmp = cJSON_GetObjectItem(json_root, "major_height_max");
 	if (json_tmp)
 		g_av_platform_ctx.m_major_height_max = json_tmp->valueint;
 	else
+	{
+		g_av_platform_ctx.m_major_height_max = 1920;
 		cJSON_AddNumberToObject(json_root, "major_height_max", g_av_platform_ctx.m_major_height_max);
+	}
 	json_tmp = cJSON_GetObjectItem(json_root, "major_vb_cnt");
 	if (json_tmp)
 		g_av_platform_ctx.m_major_vb_cnt = json_tmp->valueint;
 	else
+	{
+		g_av_platform_ctx.m_major_vb_cnt = 80;
 		cJSON_AddNumberToObject(json_root, "major_vb_cnt", g_av_platform_ctx.m_major_vb_cnt);
+	}
 	json_tmp = cJSON_GetObjectItem(json_root, "minor_width_max");
 	if (json_tmp)
 		g_av_platform_ctx.m_minor_width_max = json_tmp->valueint;
 	else
+	{
+		g_av_platform_ctx.m_minor_width_max = 960;
 		cJSON_AddNumberToObject(json_root, "minor_width_max", g_av_platform_ctx.m_minor_width_max);
+	}
 
 	json_tmp = cJSON_GetObjectItem(json_root, "minor_height_max");
 	if (json_tmp)
 		g_av_platform_ctx.m_minor_height_max = json_tmp->valueint;
 	else
+	{
+		g_av_platform_ctx.m_minor_height_max = 540;
 		cJSON_AddNumberToObject(json_root, "minor_height_max", g_av_platform_ctx.m_minor_height_max);
+	}
+		
 
 	json_tmp = cJSON_GetObjectItem(json_root, "minor_vb_cnt");
 	if (json_tmp)
 		g_av_platform_ctx.m_minor_vb_cnt = json_tmp->valueint;
 	else
+	{
+		g_av_platform_ctx.m_minor_vb_cnt = 50;
 		cJSON_AddNumberToObject(json_root, "minor_vb_cnt", g_av_platform_ctx.m_minor_vb_cnt);
+	}
 
 	json_tmp = cJSON_GetObjectItem(json_root, "vpss_group_ddr_id");
 	if (json_tmp)
 		g_av_platform_ctx.m_vpss_group_ddr_id = json_tmp->valueint;
 	else
+	{
+		g_av_platform_ctx.m_vpss_group_ddr_id = 0;
 		cJSON_AddNumberToObject(json_root, "vpss_group_ddr_id", g_av_platform_ctx.m_vpss_group_ddr_id);
+	}
+		
 
 	json_tmp = cJSON_GetObjectItem(json_root, "venc_group_ddr_id");
 	if (json_tmp)
 		g_av_platform_ctx.m_venc_group_ddr_id = json_tmp->valueint;
 	else
+	{
+		g_av_platform_ctx.m_venc_group_ddr_id = 0;
 		cJSON_AddNumberToObject(json_root, "venc_group_ddr_id", g_av_platform_ctx.m_venc_group_ddr_id);
+	}
 
 	json_tmp = cJSON_GetObjectItem(json_root, "venc_chn_ddr_id");
 	if (json_tmp)
 		g_av_platform_ctx.m_venc_chn_ddr_id = json_tmp->valueint;
 	else
+	{
+		g_av_platform_ctx.m_venc_chn_ddr_id = 0;
 		cJSON_AddNumberToObject(json_root, "venc_chn_ddr_id", g_av_platform_ctx.m_venc_chn_ddr_id);
+	}
 
 	json_tmp = cJSON_GetObjectItem(json_root, "vdec_chn_ddr_id");
 	if (json_tmp)
-		g_av_platform_ctx.m_venc_chn_ddr_id = json_tmp->valueint;
+		g_av_platform_ctx.m_vdec_chn_ddr_id = json_tmp->valueint;
 	else
+	{
+		g_av_platform_ctx.m_vdec_chn_ddr_id = 0;
 		cJSON_AddNumberToObject(json_root, "vdec_chn_ddr_id", g_av_platform_ctx.m_vdec_chn_ddr_id);
-
-	json_tmp = cJSON_GetObjectItem(json_root, "vdec_chn_ddr_id");
-	if (json_tmp)
-		g_av_platform_ctx.m_venc_chn_ddr_id = json_tmp->valueint;
-	else
-		cJSON_AddNumberToObject(json_root, "vdec_chn_ddr_id", g_av_platform_ctx.m_vdec_chn_ddr_id);
+	}
 
 	json_tmp = cJSON_GetObjectItem(json_root, "av_cfg");
 	if (!json_tmp)
@@ -828,79 +1125,150 @@ int av_load_cfg()
 		cJSON_AddItemReferenceToObject(json_root, "av_cfg", json_arry);
 	}
 	else
-	{
+	{	
 		cJSON *_json = cJSON_GetArrayItem(json_arry, 0);
 		json_tmp = cJSON_GetObjectItem(_json, "dev_id_ui");
 		if (json_tmp)
 			g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_dev_id = json_tmp->valueint;
 		else
+		{
+			g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_dev_id = 0;
 			cJSON_AddNumberToObject(_json, "dev_id_ui", g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_dev_id);
+		}
 
 		json_tmp = cJSON_GetObjectItem(_json, "out_dev_type_ui");
 		if (json_tmp)
 			g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_out_dev_type = json_tmp->valueint;
 		else
+		{
+			g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_out_dev_type = OUT_DEV_TYPE_VGA;
 			cJSON_AddNumberToObject(_json, "out_dev_type_ui", g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_out_dev_type);
+		}	
 
 		json_tmp = cJSON_GetObjectItem(_json, "resulotion_type_ui");
 		if (json_tmp)
 			g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_resulotion_type = (resulotion_type_t)json_tmp->valueint;
 		else
+		{
+			g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_resulotion_type = RESULOTION_TYPE_1920X1080;
 			cJSON_AddNumberToObject(_json, "resulotion_type_ui", g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_resulotion_type);
+		}
 
 		json_tmp = cJSON_GetObjectItem(_json, "frame_rate_type_ui");
 		if (json_tmp)
 			g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_frame_rate_type = (frame_rate_type_t)json_tmp->valueint;
 		else
+		{
+			g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_frame_rate_type = FRAME_RATE_TYPE_60;
 			cJSON_AddNumberToObject(_json, "frame_rate_type_ui", g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_frame_rate_type);
+		}
+			
 
 		json_tmp = cJSON_GetObjectItem(_json, "pixel_fmt_type_ui");
 		if (json_tmp)
 			g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_pixel_fmt_type = (pixel_fmt_type_t)json_tmp->valueint;
 		else
+		{
+			g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
 			cJSON_AddNumberToObject(_json, "pixel_fmt_type_ui", g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_pixel_fmt_type);
+		}
+			
 
 		json_tmp = cJSON_GetObjectItem(_json, "bg_color_ui");
 		if (json_tmp)
 			g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_bg_color = (pixel_fmt_type_t)json_tmp->valueint;
 		else
-			cJSON_AddNumberToObject(_json, "pixel_fmt_type_ui", g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_bg_color);
-
+		{
+			g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_bg_color = 0x0;
+			cJSON_AddNumberToObject(_json, "bg_color_ui", g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_bg_color);
+		}	
+		
+		json_tmp = cJSON_GetObjectItem(_json, "vpss_pixel_fmt_type_ui");
+		if (json_tmp)
+			g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_pixel_fmt_type = (pixel_fmt_type_t)json_tmp->valueint;
+		else
+		{
+			g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
+			cJSON_AddNumberToObject(_json, "vpss_pixel_fmt_type_ui", g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_pixel_fmt_type);
+		}
+		json_tmp = cJSON_GetObjectItem(_json, "vpss_max_height_ui");
+		if (json_tmp)
+			g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_height = (pixel_fmt_type_t)json_tmp->valueint;
+		else
+		{
+			g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_height = 1080;
+			cJSON_AddNumberToObject(json_tmp, "vpss_max_height_ui", g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_height);
+		}
+		json_tmp = cJSON_GetObjectItem(_json, "vpss_max_width_ui");
+		if (json_tmp)
+			g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_width = (pixel_fmt_type_t)json_tmp->valueint;
+		else
+		{
+			g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_width = 1920;
+			cJSON_AddNumberToObject(json_tmp, "vpss_max_width_ui", g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_width);
+		}
+		//____________________________________________
+		
 		json_tmp = cJSON_GetObjectItem(_json, "dev_id_live");
 		if (json_tmp)
 			g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_dev_id = json_tmp->valueint;
 		else
+		{
+			g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_dev_id = 1;//DH1
 			cJSON_AddNumberToObject(_json, "dev_id_live", g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_dev_id);
+		}
+			
 		
 		json_tmp = cJSON_GetObjectItem(_json, "out_dev_type_live");
 		if (json_tmp)
 			g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_out_dev_type = json_tmp->valueint;
 		else
+		{
+			g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_out_dev_type = (OUT_DEV_TYPE_HDMI | OUT_DEV_TYPE_BT1120);
 			cJSON_AddNumberToObject(_json, "out_dev_type_live", g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_out_dev_type);
+		}
+			
 
 		json_tmp = cJSON_GetObjectItem(_json, "resulotion_type_live");
 		if (json_tmp)
 			g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_resulotion_type = (resulotion_type_t)json_tmp->valueint;
 		else
+		{
+			g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_resulotion_type = RESULOTION_TYPE_1920X1080;
 			cJSON_AddNumberToObject(_json, "resulotion_type_live", g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_resulotion_type);
+		}
+
+			
 
 		json_tmp = cJSON_GetObjectItem(_json, "frame_rate_type_live");
 		if (json_tmp)
 			g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_frame_rate_type = (frame_rate_type_t)json_tmp->valueint;
 		else
+		{
+			g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_frame_rate_type = FRAME_RATE_TYPE_60;
 			cJSON_AddNumberToObject(_json, "frame_rate_type_live", g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_frame_rate_type);
+		}
+			
 
 		json_tmp = cJSON_GetObjectItem(_json, "pixel_fmt_type_live");
 		if (json_tmp)
 			g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_pixel_fmt_type = (pixel_fmt_type_t)json_tmp->valueint;
 		else
+		{
+			g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
 			cJSON_AddNumberToObject(_json, "pixel_fmt_type_live", g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_pixel_fmt_type);
+		}
+			
 
 		json_tmp = cJSON_GetObjectItem(_json, "bg_color_live");
 		if (json_tmp)
 			g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_bg_color = (pixel_fmt_type_t)json_tmp->valueint;
 		else
+		{
+			g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_bg_color = 0x0;
 			cJSON_AddNumberToObject(_json, "bg_color_live", g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_bg_color);
+		}
+			
 	}
 
 	json_fp = fopen(AV_CFG_JSON_PATH, "w+");
@@ -1084,8 +1452,8 @@ int av_stop_live_out(av_platform_cfg_t av_platform_cfg)
 int av_init_cfg()
 {
 	memset(&g_av_platform_ctx, 0, sizeof(g_av_platform_ctx));
-	g_av_platform_ctx.m_major_height_max = 1920;
-	g_av_platform_ctx.m_major_width_max = 1080;
+	g_av_platform_ctx.m_major_height_max = 1080;
+	g_av_platform_ctx.m_major_width_max = 1920;
 	g_av_platform_ctx.m_major_vb_cnt = 80;
 	g_av_platform_ctx.m_minor_width_max = 960;
 	g_av_platform_ctx.m_minor_height_max = 540;
@@ -1094,6 +1462,7 @@ int av_init_cfg()
 	g_av_platform_ctx.m_venc_group_ddr_id = 0;
 	g_av_platform_ctx.m_venc_chn_ddr_id = 0;
 	g_av_platform_ctx.m_vdec_chn_ddr_id = 0;
+	g_av_platform_ctx.m_vichn_cnt = 6;	
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_dev_id = 0;	//DH0
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_out_dev_type = OUT_DEV_TYPE_VGA;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_resulotion_type = RESULOTION_TYPE_1920X1080;
@@ -1156,6 +1525,11 @@ int av_startup()
 	av_start_hdmi();
 	av_start_ui_out(g_av_platform_ctx.m_cfg);
 	av_start_live_out(g_av_platform_ctx.m_cfg);
+	//start vi chn
+	for(i = 0; i < g_av_platform_ctx.m_vichn_cnt; i++)
+	{
+
+	}
 	return AV_OK;
 }
 
