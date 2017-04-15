@@ -6,6 +6,13 @@ extern "C"
 {
 #endif
 
+#define RETURN_OK 0
+#define RETURN_ERR_FALSE -1
+#define RETURN_ERR_INVALID_PARAM -2
+#define RETURN_ERR_NO_MEMORY -3
+#define RETURN_ERR_OPEN_FILE_FAILED -4
+#define RETURN_ERR_FILE_EMPTY -5
+
 #ifdef __EN_DBG_
 #define DBG_PRT printf 
 #else
@@ -105,6 +112,8 @@ extern "C"
 
 #define _720P_WIDTH              1280
 #define _720P_HEIGHT             720
+
+#define VI_CHN_START	3
 
 
 #ifdef __cplusplus

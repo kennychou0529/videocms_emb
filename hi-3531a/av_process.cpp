@@ -13,6 +13,9 @@ typedef struct _av_vpss_group_info_s
 
 int av_init_cfg();
 
+av_platform_ctx_t g_av_platform_ctx;
+static av_vpss_group_info_t s_vpss_grp_arry[VPSS_MAX_GRP_NUM];
+
 VI_DEV_ATTR_S DEV_ATTR_7441_BT1120_STANDARD_BASE =
 {
 	/*interface mode*/
@@ -86,8 +89,6 @@ VI_DEV_ATTR_S DEV_ATTR_TP2823_720P_1MUX_BASE =
 		VI_DATA_TYPE_YUV
 };
 
-av_platform_ctx_t g_av_platform_ctx;
-static av_vpss_group_info_t s_vpss_grp_arry[VPSS_MAX_GRP_NUM];
 static int av_set_vi_bt656(vi_cfg_t vi_cfg, VI_DEV_ATTR_S * stViDevAttr)
 {
 	if (!stViDevAttr)
@@ -191,18 +192,19 @@ int av_cal_blk_size(int width, int height, int align_width, int pix_fmt, int com
 int av_register_vpss_group()
 {
 	int i = 0;
-
+	int vps_grp = -1;
+	
+	pthread_mutex_lock(&g_av_platform_ctx.m_mtx);
 	for (i = 0;i < VPSS_MAX_GRP_NUM;i++)
 	{
 		if (0 == s_vpss_grp_arry[i].m_used_status)
 		{
-			pthread_mutex_lock(&g_av_platform_ctx.m_mtx);
 			s_vpss_grp_arry[i].m_used_status = 1;
-			pthread_mutex_unlock(&g_av_platform_ctx.m_mtx);
-			return s_vpss_grp_arry[i].m_vpss_grp;
+			vps_grp = s_vpss_grp_arry[i].m_vpss_grp;
 		}
 	}
-	return -1;
+	pthread_mutex_unlock(&g_av_platform_ctx.m_mtx);
+	return vps_grp;
 }
 
 int av_unregister_vpss_group(int grp_number)
@@ -212,18 +214,18 @@ int av_unregister_vpss_group(int grp_number)
 		return AV_ERR_INVALID_PARAM;
 	}
 	int i = 0;
-
+	pthread_mutex_lock(&g_av_platform_ctx.m_mtx);
 	for (i = 0;i < VPSS_MAX_GRP_NUM;i++)
 	{
 		if (grp_number == s_vpss_grp_arry[i].m_vpss_grp)
 		{
-			pthread_mutex_lock(&g_av_platform_ctx.m_mtx);
 			s_vpss_grp_arry[i].m_used_status = 0;
-			pthread_mutex_unlock(&g_av_platform_ctx.m_mtx);
-			return AV_OK;
+			break;
 		}
 	}
-	return AV_FALSE;
+	pthread_mutex_unlock(&g_av_platform_ctx.m_mtx);
+	
+	return AV_OK;
 }
 
 int av_start_vo_dev(av_vo_cfg_t av_vo_cfg, VO_DEV vo_dev, VO_LAYER vo_layer)
@@ -625,7 +627,124 @@ int av_stop_vi(vi_cfg_t vi_cfg)
 	return AV_OK;
 }
 
-int av_start_vpss(vpss_cfg_t vpss_cfg, VPSS_GRP vpss_grp, VPSS_CHN vpss_chn)
+int av_set_vpss_chn_mode(int channel_index, VPSS_GRP VpssGrp, int VpssChn)
+{
+	if (channel_index < 0 || channel_index > VI_CHN_START + g_av_platform_ctx.m_vichn_cnt + g_av_platform_ctx.m_filechn_cnt + g_av_platform_ctx.m_remotechn_cnt)
+	{
+		return AV_ERR_INVALID_PARAM;
+	}
+	
+	VPSS_CHN_MODE_S pstVpssMode;
+	HI_S32 s32Ret;
+	channel_data_t *p_chn_dat = &g_av_platform_ctx.m_local_channel_ptr[channel_index];
+	channel_cfg_t *p_chn_cfg = &p_chn_dat->m_cfg;
+	vpss_cfg_t *p_vpss_cfg = &p_chn_cfg->m_vpss_cfg;
+
+	if (VPSS_CHN_TYPE_MAJOR == VpssChn)
+	{
+		if (VPSS_CHN_MODE_USER == p_vpss_cfg->m_en_major_user_mode)
+		{
+			HI_MPI_VPSS_GetChnMode(VpssGrp, VpssChn, &pstVpssMode);
+			pstVpssMode.u32Width = p_chn_cfg->m_major_venc_width;
+			pstVpssMode.u32Height = p_chn_cfg->m_major_venc_height;
+			pstVpssMode.enPixelFormat = p_chn_cfg->m_pix_format;
+			pstVpssMode.bDouble = HI_FALSE;
+			pstVpssMode.enChnMode = VPSS_CHN_MODE_USER;
+			s32Ret = HI_MPI_VPSS_SetChnMode(VpssGrp, VpssChn, &pstVpssMode);
+			if (s32Ret != HI_SUCCESS)
+			{
+				DBG_PRT("HI_MPI_VPSS_SetChnMode USERMode with %#x\n", s32Ret);
+				return AV_FALSE;
+			}
+		}
+		else
+		{
+			pstVpssMode.enChnMode = VPSS_CHN_MODE_AUTO;
+			s32Ret = HI_MPI_VPSS_SetChnMode(VpssGrp, VpssChn, &pstVpssMode);
+			if (s32Ret != HI_SUCCESS)
+			{
+				DBG_PRT("HI_MPI_VPSS_SetChnMode AUTO_Mode with %#x\n", s32Ret);
+				return AV_FALSE;
+			}
+		}
+
+	}
+	else if (VPSS_CHN_TYPE_MINOR == VpssChn)
+	{
+		if (VPSS_CHN_MODE_USER == p_vpss_cfg->m_en_minor_user_mode)
+		{
+			HI_MPI_VPSS_GetChnMode(VpssGrp, VpssChn, &pstVpssMode);
+			pstVpssMode.u32Width = p_chn_cfg->m_minor_venc_width;
+			pstVpssMode.u32Height = p_chn_cfg->m_minor_venc_hight;
+			pstVpssMode.enPixelFormat = p_chn_cfg->m_pix_format;
+			pstVpssMode.bDouble = HI_FALSE;
+			pstVpssMode.enChnMode = VPSS_CHN_MODE_USER;
+			s32Ret = HI_MPI_VPSS_SetChnMode(VpssGrp, VpssChn, &pstVpssMode);
+			if (s32Ret != HI_SUCCESS)
+			{
+				DBG_PRT("HI_MPI_VPSS_SetChnMode with %#x\n", s32Ret);
+				return AV_FALSE;
+			}
+		}
+		else
+		{
+			pstVpssMode.enChnMode = VPSS_CHN_MODE_AUTO;
+			s32Ret = HI_MPI_VPSS_SetChnMode(VpssGrp, VpssChn, &pstVpssMode);
+			if (s32Ret != HI_SUCCESS)
+			{
+				DBG_PRT("HI_MPI_VPSS_SetChnMode AUTO_Mode with %#x\n", s32Ret);
+				return AV_FALSE;
+			}
+		}
+	}
+	else if (VPSS_CHN_TYPE_MINOR2 == VpssChn && )
+	{
+		if (VPSS_CHN_MODE_USER == p_vpss_cfg->m_en_minor2_user_mode)
+		{
+			HI_MPI_VPSS_GetChnMode(VpssGrp, VpssChn, &pstVpssMode);
+			pstVpssMode.u32Width = p_chn_cfg->m_minor2_venc_width;
+			pstVpssMode.u32Height = p_chn_cfg->m_minor2_venc_height;
+			pstVpssMode.enPixelFormat = p_chn_cfg->m_pix_format;
+			pstVpssMode.bDouble = HI_FALSE;
+			pstVpssMode.enChnMode = VPSS_CHN_MODE_USER;
+			s32Ret = HI_MPI_VPSS_SetChnMode(VpssGrp, VpssChn, &pstVpssMode);
+			if (s32Ret != HI_SUCCESS)
+			{
+				DBG_PRT("HI_MPI_VPSS_SetChnMode with %#x\n", s32Ret);
+				return AV_FALSE;
+			}
+		}
+		else
+		{
+			pstVpssMode.enChnMode = VPSS_CHN_MODE_AUTO;
+			s32Ret = HI_MPI_VPSS_SetChnMode(VpssGrp, VpssChn, &pstVpssMode);
+			if (s32Ret != HI_SUCCESS)
+			{
+				DBG_PRT("HI_MPI_VPSS_SetChnMode AUTO_Mode with %#x\n", s32Ret);
+				return AV_FALSE;
+			}
+		}
+	}
+	else if (VPSS_CHN_TYPE_RENDER == VpssChn && VPSS_CHN_MODE_USER == p_vpss_cfg->m_en_render_user_mode)
+	{
+// 		HI_MPI_VPSS_GetChnMode(VpssGrp, VpssChn, &pstVpssMode);
+// 		pstVpssMode.u32Width = p_chn_cfg->m_minor2_venc_width;
+// 		pstVpssMode.u32Height = p_chn_cfg->m_minor2_venc_height;
+// 		pstVpssMode.enPixelFormat = p_chn_cfg->m_pix_format;
+// 		pstVpssMode.bDouble = HI_FALSE;
+// 		pstVpssMode.enChnMode = VPSS_CHN_MODE_USER;
+// 		s32Ret = HI_MPI_VPSS_SetChnMode(VpssGrp, VpssChn, &pstVpssMode);
+// 		if (s32Ret != HI_SUCCESS)
+// 		{
+// 			DBG_PRT("HI_MPI_VPSS_SetChnMode with %#x\n", s32Ret);
+// 			return AV_FALSE;
+// 		}
+	}
+
+	return RETURN_OK;
+}
+
+int av_start_vpss(int channel_index, VPSS_GRP vpss_grp)
 {
 	VPSS_GRP VpssGrp = vpss_grp;
 	VPSS_CHN VpssChn = vpss_chn;
@@ -633,15 +752,19 @@ int av_start_vpss(vpss_cfg_t vpss_cfg, VPSS_GRP vpss_grp, VPSS_CHN vpss_chn)
 	VPSS_CHN_ATTR_S stChnAttr = {0};
 	VPSS_GRP_PARAM_S stVpssParam = {0};
 	HI_S32 s32Ret;
+	int i = 0;
+	channel_data_t *p_chn_dat = &g_av_platform_ctx.m_local_channel_ptr[channel_index];
+	channel_cfg_t *p_chn_cfg = &p_chn_dat->m_cfg;
+	vpss_cfg_t *p_vpss_cfg = &p_chn_cfg->m_vpss_cfg;
 
-	stGrpAttr.u32MaxW = vpss_cfg.m_max_width;
-	stGrpAttr.u32Max = vpss_cfg.m_max_height;
-	stGrpAttr.bNrEn = vpss_cfg.m_en_nr;
-	stGrpAttr.bIeEn = vpss_cfg.m_en_ie;
-	stGrpAttr.bDciEn = vpss_cfg.m_en_dci;
-	stGrpAttr.bHistEn = vpss_cfg.m_en_hist;
-	stGrpAttr.bEsEn = vpss_cfg.m_en_es;
-	stGrpAttr.enDieMode = vpss_cfg.m_en_die_mode;
+	stGrpAttr.u32MaxW = p_vpss_cfg->m_max_width;
+	stGrpAttr.u32Max = p_vpss_cfg->m_max_height;
+	stGrpAttr.bNrEn = p_vpss_cfg->m_en_nr;
+	stGrpAttr.bIeEn = p_vpss_cfg->m_en_ie;
+	stGrpAttr.bDciEn = p_vpss_cfg->m_en_dci;
+	stGrpAttr.bHistEn = p_vpss_cfg->m_en_hist;
+	stGrpAttr.bEsEn = p_vpss_cfg->m_en_es;
+	stGrpAttr.enDieMode = p_vpss_cfg->m_en_die_mode;
 	if(PIXEL_FMT_TYPE_YUV422 == vpss_cfg.m_pixel_fmt_type)
 	{
 		stGrpAttr.enPixFmt = PIXEL_FORMAT_YUV_SEMIPLANAR_422;
@@ -665,15 +788,15 @@ int av_start_vpss(vpss_cfg_t vpss_cfg, VPSS_GRP vpss_grp, VPSS_CHN vpss_chn)
 		return AV_FALSE;
 	}
 
-	stVpssParam.u32Contrast = vpss_cfg.m_contrast;
-	stVpssParam.u32DieStrength = vpss_cfg.m_dieStrength;
-	stVpssParam.u32IeStrength = vpss_cfg.m_ieStrength;
-	stVpssParam.u32SfStrength = vpss_cfg.m_sfStrength;
-	stVpssParam.u32TfStrength = vpss_cfg.m_cTfStrength;
-	stVpssParam.u32CfStrength = vpss_cfg.m_cfStrength;
-	stVpssParam.u32CTfStrength = vpss_cfg.m_cTfStrength;
-	stVpssParam.u32CvbsStrength = vpss_cfg.m_cTfStrength;
-	stVpssParam.u32DeMotionBlurring = vpss_cfg.m_deMotionBlurring;
+	stVpssParam.u32Contrast = p_vpss_cfg->m_contrast;
+	stVpssParam.u32DieStrength = p_vpss_cfg->m_dieStrength;
+	stVpssParam.u32IeStrength = p_vpss_cfg->m_ieStrength;
+	stVpssParam.u32SfStrength = p_vpss_cfg->m_sfStrength;
+	stVpssParam.u32TfStrength = p_vpss_cfg->m_cTfStrength;
+	stVpssParam.u32CfStrength = p_vpss_cfg->m_cfStrength;
+	stVpssParam.u32CTfStrength = p_vpss_cfg->m_cTfStrength;
+	stVpssParam.u32CvbsStrength = p_vpss_cfg->m_cTfStrength;
+	stVpssParam.u32DeMotionBlurring = p_vpss_cfg->m_deMotionBlurring;
 	s32Ret = HI_MPI_VPSS_SetGrpParam(VpssGrp, &stVpssParam);
 	if (s32Ret != HI_SUCCESS)
 	{
@@ -690,17 +813,21 @@ int av_start_vpss(vpss_cfg_t vpss_cfg, VPSS_GRP vpss_grp, VPSS_CHN vpss_chn)
 	stChnAttr.stBorder.u32TopWidth = 2;
 	stChnAttr.stBorder.u32BottomWidth = 2;
 
-	s32Ret = HI_MPI_VPSS_SetChnAttr(VpssGrp, VpssChn, &stChnAttr);
-	if (s32Ret != HI_SUCCESS)
+	for (i = 0; i < VPSS_MAX_CHN_NUM;i++)
 	{
-		DBG_PRT("HI_MPI_VPSS_SetChnAttr failed with %#x\n", s32Ret);
-		return AV_FALSE;
-	}
-	s32Ret = HI_MPI_VPSS_EnableChn(VpssGrp, VpssChn);
-	if (s32Ret != HI_SUCCESS)
-	{
-		DBG_PRT("HI_MPI_VPSS_EnableChn failed with %#x\n", s32Ret);
-		return AV_FALSE;
+		s32Ret = HI_MPI_VPSS_SetChnAttr(VpssGrp, VpssChn, &stChnAttr);
+		if (s32Ret != HI_SUCCESS)
+		{
+			DBG_PRT("HI_MPI_VPSS_SetChnAttr failed with %#x\n", s32Ret);
+			return AV_FALSE;
+		}
+		s32Ret = HI_MPI_VPSS_EnableChn(VpssGrp, VpssChn);
+		if (s32Ret != HI_SUCCESS)
+		{
+			DBG_PRT("HI_MPI_VPSS_EnableChn failed with %#x\n", s32Ret);
+			return AV_FALSE;
+		}
+		av_set_vpss_chn_mode(channel_index, VpssGrp, i);
 	}
 	/*** start vpss group ***/
 	s32Ret = HI_MPI_VPSS_StartGrp(VpssGrp);
@@ -712,11 +839,12 @@ int av_start_vpss(vpss_cfg_t vpss_cfg, VPSS_GRP vpss_grp, VPSS_CHN vpss_chn)
 	return AV_OK;
 }
 
-int av_stop_vpss(VPSS_GRP vpss_grp, VPSS_CHN vpss_chn)
+int av_stop_vpss(VPSS_GRP vpss_grp)
 {
 	HI_S32 s32Ret = HI_SUCCESS;
 	VPSS_GRP VpssGrp = vpss_grp;
-	VPSS_CHN VpssChn = vpss_chn;
+
+	int i;
 
 	s32Ret = HI_MPI_VPSS_StopGrp(VpssGrp);
 	if (s32Ret != HI_SUCCESS)
@@ -724,11 +852,14 @@ int av_stop_vpss(VPSS_GRP vpss_grp, VPSS_CHN vpss_chn)
 		DBG_PRT("failed with %#x!\n", s32Ret);
 		return AV_FALSE;
 	}
-	s32Ret = HI_MPI_VPSS_DisableChn(VpssGrp, VpssChn);
-	if (s32Ret != HI_SUCCESS)
+	for (i = 0; i < VPSS_MAX_CHN_NUM;i++)
 	{
-		DBG_PRT("failed with %#x!\n", s32Ret);
-		return AV_FALSE;
+		s32Ret = HI_MPI_VPSS_DisableChn(VpssGrp, i);
+		if (s32Ret != HI_SUCCESS)
+		{
+			DBG_PRT("failed with %#x!\n", s32Ret);
+			return AV_FALSE;
+		}
 	}
 	s32Ret = HI_MPI_VPSS_DestroyGrp(VpssGrp);
 	if (s32Ret != HI_SUCCESS)
@@ -1379,15 +1510,14 @@ int av_start_live_out(av_platform_cfg_t av_platform_cfg)
 	}
 	else
 	{
-		VoDev = SAMPLE_VO_DEV_DHD0;
-		VoLayer = SAMPLE_VO_LAYER_VHD0;
+		VoDev = SAMPLE_VO_LAYER_VHD0;
 	}
 
 	if(AV_OK != av_start_vo_dev(av_platform_cfg.m_vo_cfg_live, VoDev, VoLayer))
 		DBG_PRT("av_start_vo_dev is failed\n");
 	av_platform_cfg.m_vpss_cfg_live.m_group_number = av_register_vpss_group();
 	DBG_PRT("ui out vpss grp is %d\n", av_platform_cfg.m_vpss_cfg_live.m_group_number);
-	av_start_vpss(av_platform_cfg.m_vpss_cfg_ui, av_platform_cfg.m_vpss_cfg_live.m_group_number , VPSS_CHN_TYPE_RENDER);
+	av_start_vpss(av_platform_cfg.m_vpss_cfg_ui, av_platform_cfg.m_vpss_cfg_live.m_group_number);
 	vo_chn_cfg.m_chn_id = 0;
 	vo_chn_cfg.m_deflicker = 0;
 	vo_chn_cfg.m_layer_id = 0;
@@ -1463,6 +1593,8 @@ int av_init_cfg()
 	g_av_platform_ctx.m_venc_chn_ddr_id = 0;
 	g_av_platform_ctx.m_vdec_chn_ddr_id = 0;
 	g_av_platform_ctx.m_vichn_cnt = 6;	
+	g_av_platform_ctx.m_filechn_cnt = 2;
+	g_av_platform_ctx.m_remotechn_cnt = 4;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_dev_id = 0;	//DH0
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_out_dev_type = OUT_DEV_TYPE_VGA;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_resulotion_type = RESULOTION_TYPE_1920X1080;
@@ -1508,6 +1640,10 @@ int av_uninit_cfg()
 int av_startup()
 {
 	int i = 0;
+	int vir_and_vi_chn_cnt;
+	vi_cfg_t vi_cfg;
+	channel_data_t *p_chn_dat;
+	channel_cfg_t *p_chn_cfg;
 
 	memset(&g_av_platform_ctx, 0, sizeof(av_platform_ctx_t));
 	for (i = 0;i < VPSS_MAX_GRP_NUM;i++)
@@ -1525,16 +1661,50 @@ int av_startup()
 	av_start_hdmi();
 	av_start_ui_out(g_av_platform_ctx.m_cfg);
 	av_start_live_out(g_av_platform_ctx.m_cfg);
-	//start vi chn
-	for(i = 0; i < g_av_platform_ctx.m_vichn_cnt; i++)
+	//_申请通道参数空间
+	g_av_platform_ctx.m_local_channel_ptr = (channel_data_t *)calloc(1, VI_CHN_START + g_av_platform_ctx.m_vichn_cnt);
+	for (i = 0;i < g_av_platform_ctx.m_vichn_cnt; i++)
 	{
-
+		g_av_platform_ctx.m_all_channel_ptr[i] = &(g_av_platform_ctx.m_local_channel_ptr[i]);
 	}
+	g_av_platform_ctx.m_local_chn_index_offset = 0;
+	g_av_platform_ctx.m_file_channel_ptr = (channel_data_t *)calloc(1, g_av_platform_ctx.m_filechn_cnt);
+	for (i = 0; i < g_av_platform_ctx.m_filechn_cnt;i++)
+	{
+		g_av_platform_ctx.m_all_channel_ptr[g_av_platform_ctx.m_vichn_cnt + i] = &(g_av_platform_ctx.m_file_channel_ptr[i]);
+	}
+	g_av_platform_ctx.m_file_chn_index_offset = g_av_platform_ctx.m_filechn_cnt;
+	core_channel_local_setup();
+	for(i = VI_CHN_START; i < g_av_platform_ctx.m_vichn_cnt; i++)
+	{
+		memcpy(&vi_cfg, &g_av_platform_ctx.m_local_channel_ptr[i], sizeof(vi_cfg));
+		av_start_vi(vi_cfg);
+	}
+	vir_and_vi_chn_cnt = VI_CHN_START + g_av_platform_ctx.m_vichn_cnt;
+	for (i = 0; i < vir_and_vi_chn_cnt;i++)
+	{
+		p_chn_dat = &g_av_platform_ctx.m_local_channel_ptr[i];
+		p_chn_cfg = &p_chn_dat->m_cfg;
+		p_chn_cfg->m_vpss_cfg.m_group_number = av_register_vpss_group();
+		av_start_vpss(i, p_chn_cfg->m_vpss_cfg.m_group_number);
+	}
+	
 	return AV_OK;
 }
 
 int  av_shutdown()
 {
+	int i = 0;
+	vi_cfg_t vi_cfg;
+
+	for(i = VI_CHN_START; i < g_av_platform_ctx.m_vichn_cnt; i++)
+	{
+		memcpy(&vi_cfg, &g_av_platform_ctx.m_local_channel_ptr[i], sizeof(vi_cfg));
+		av_start_vi(vi_cfg);
+	}
+	av_stop_ui_out(g_av_platform_ctx.m_cfg);
+	av_stop_live_out(g_av_platform_ctx.m_cfg);
+	av_stop_hdmi();
 	av_uninit_mpp_sys();
 	av_uninit_cfg();
 	pthread_mutex_destroy(&g_av_platform_ctx.m_mtx);

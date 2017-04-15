@@ -49,6 +49,12 @@ typedef enum _vi_chn_set_e
 	VI_CHN_SET_FILP  = 2      /* open filp */
 }vi_chn_set_t;
 
+typedef enum _vpss_chn_mode_e
+{
+	VPSS_CHN_MODE_AUTO = 0,
+	VPSS_CHN_MODE_USER = 1,
+}vpss_chn_mode_t;
+
 typedef struct _vo_chn_cfg_s
 {
 	int m_chn_id;							//_chn id
@@ -83,6 +89,10 @@ typedef struct _vpss_cfg_s
 	unsigned int m_max_width;				//_vpss最大图像宽度
 	unsigned int m_max_height;				//_vpss最大图像高度
 	pixel_fmt_type_t m_pixel_fmt_type;		//_输出设备YUV格式类型
+	vpss_chn_mode_t m_en_major_user_mode;;				//_使能major_vpss通道用户模式
+	vpss_chn_mode_t m_en_minor_user_mode;;				//_使能minor_vpss通道用户模式
+	vpss_chn_mode_t m_en_minor2_user_mode;;			//_使能minor2_vpss通道用户模式
+	vpss_chn_mode_t m_en_render_user_mode;;			//_使能render_vpss通道用户模式
 	char m_en_die_mode;						//_启用die模式
 	char m_en_ie;							//_启用ie功能
 	char m_en_dci;							//_启用dci功能
@@ -99,18 +109,24 @@ typedef struct _vpss_cfg_s
 	char m_deMotionBlurring;				//_DeMotionBlurring
 }vpss_cfg_t, *pvpss_cfg_t;
 
-typedef struct __av_platform_cfg_s
-{
-	av_vo_dev_cfg_t m_vo_cfg_ui;			//_UI输出设备配置
-	//vo_chn_cfg_t m_vo_chn_cfg_ui;			//_UI输出VO通道
-	vpss_cfg_t m_vpss_cfg_ui;				//_UI输出设备VPSS参数
-	av_vo_dev_cfg_t m_vo_cfg_live;			//_LIVE输出设备配置
-	//vo_chn_cfg_t m_vo_chn_cfg_live;			//_LIVE输出VO通道
-	vpss_cfg_t m_vpss_cfg_live;				//_LIVE输出设备VPSS参数
-}av_platform_cfg_t;
-
 typedef struct _channel_cfg_s
 {
+	int m_raw_fps;
+	int m_raw_width;
+	int m_raw_height;
+
+	int m_major_venc_fps;
+	int m_major_venc_width;
+	int m_major_venc_height;
+
+	int m_minor_venc_fps;
+	int m_minor_venc_width;
+	int m_minor_venc_hight;
+
+	int m_minor2_venc_fps;
+	int m_minor2_venc_width;
+	int m_minor2_venc_height;
+	int m_pix_format;
 	vi_cfg_t m_vi_cfg;
 	vpss_cfg_t m_vpss_cfg;
 	vo_chn_cfg_t m_vo_cfg;
@@ -118,8 +134,35 @@ typedef struct _channel_cfg_s
 
 typedef struct _channel_data_s
 {
+	//_输入video信息
+	int m_source_fps;
+	int m_source_width;
+	int m_source_height;
+
+	int m_raw_fps;
+	int m_raw_width;
+	int m_raw_height;
+
+	int m_major_venc_fps;
+	int m_major_venc_width;
+	int m_major_venc_height;
+
+	int m_minor_venc_fps;
+	int m_minor_venc_width;
+	int m_minor_venc_hight;
+
+	int m_minor2_venc_fps;
+	int m_minor2_venc_width;
+	int m_minor2_venc_height;
 	channel_cfg_t m_cfg;
 }channel_data_t, *pchannel_data_t;
+
+int core_channel_local_setup();
+int core_channel_local_desetup();
+int core_channel_uninit_cfg();
+int core_channel_init_cfg();
+int core_channel_load_cfg();
+int core_channel_save_cfg()
 
 #ifdef __cplusplus
 }
