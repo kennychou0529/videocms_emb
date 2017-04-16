@@ -282,6 +282,11 @@ int av_start_vo_dev(av_vo_cfg_t av_vo_cfg, VO_DEV vo_dev, VO_LAYER vo_layer)
 			stVoPubAttr_hd1.enIntfSync = VO_OUTPUT_3840x2160_60;
 			tmp_width = 3840; tmp_height = 2160;
 		}
+		else
+		{
+			stVoPubAttr_hd1.enIntfSync = VO_OUTPUT_1080P60;
+			tmp_width = 1920; tmp_height = 1080;
+		}
 	}
 	else if (FRAME_RATE_TYPE_50 == av_vo_cfg.m_frame_rate_type)
 	{
@@ -313,6 +318,11 @@ int av_start_vo_dev(av_vo_cfg_t av_vo_cfg, VO_DEV vo_dev, VO_LAYER vo_layer)
 		{
 			stVoPubAttr_hd1.enIntfSync = VO_OUTPUT_3840x2160_50;
 			tmp_width = 3840; tmp_height = 2160;
+		}
+		else
+		{
+			stVoPubAttr_hd1.enIntfSync = VO_OUTPUT_1080P50;
+			tmp_width = 1920; tmp_height = 1080;
 		}
 	}
 	else if (FRAME_RATE_TYPE_30 == av_vo_cfg.m_frame_rate_type)
@@ -346,6 +356,11 @@ int av_start_vo_dev(av_vo_cfg_t av_vo_cfg, VO_DEV vo_dev, VO_LAYER vo_layer)
 			stVoPubAttr_hd1.enIntfSync = VO_OUTPUT_3840x2160_30;
 			tmp_width = 3840; tmp_height = 2160;
 		}
+		else
+		{
+			stVoPubAttr_hd1.enIntfSync = VO_OUTPUT_1080P30;
+			tmp_width = 1920; tmp_height = 1080;
+		}
 	}
 	else if (FRAME_RATE_TYPE_25 == av_vo_cfg.m_frame_rate_type)
 	{
@@ -377,6 +392,11 @@ int av_start_vo_dev(av_vo_cfg_t av_vo_cfg, VO_DEV vo_dev, VO_LAYER vo_layer)
 		{
 			stVoPubAttr_hd1.enIntfSync = VO_OUTPUT_3840x2160_25;
 			tmp_width = 3840; tmp_height = 2160;
+		}
+		else
+		{
+			stVoPubAttr_hd1.enIntfSync = VO_OUTPUT_1080P25;
+			tmp_width = 1920; tmp_height = 1080;
 		}
 	}
 	else
@@ -756,6 +776,12 @@ int av_start_vpss(int channel_index, VPSS_GRP vpss_grp)
 	channel_data_t *p_chn_dat = &g_av_platform_ctx.m_local_channel_ptr[channel_index];
 	channel_cfg_t *p_chn_cfg = &p_chn_dat->m_cfg;
 	vpss_cfg_t *p_vpss_cfg = &p_chn_cfg->m_vpss_cfg;
+	//输出给DH0 设备的VPSS信息
+	if (SPECIAL_LIVE_CHN == channel_index)
+	{
+		p_vpss_cfg = &g_av_platform_ctx.m_cfg.m_vpss_cfg_ui;
+	}
+	
 
 	stGrpAttr.u32MaxW = p_vpss_cfg->m_max_width;
 	stGrpAttr.u32Max = p_vpss_cfg->m_max_height;
@@ -1436,26 +1462,60 @@ int av_unload_cfg()
 	return AV_OK;
 }
 
+int av_get_vodev_and_volayer_by_id(int *VoDev, int *VoLayer, int dev_id)
+{
+	if (NULL == VoDev || NULL == VoLayer)
+	{
+		return AV_ERR_INVALID_PARAM;
+	}
+	
+	if (0 == dev_id)
+	{
+		*VoDev = SAMPLE_VO_DEV_DHD0;
+		GET_VO_LAYER(*VoLayer, *VoDev);
+	}
+	else if (1 == dev_id)
+	{
+		*VoDev = SAMPLE_VO_DEV_DHD1;
+		GET_VO_LAYER(*VoLayer, *VoDev);
+	}
+	else if (2 == dev_id)
+	{
+		*VoDev = SAMPLE_VO_DEV_DSD0;
+		GET_VO_LAYER(*VoLayer, *VoDev);
+	}
+	else if (3 == dev_id)
+	{
+		*VoDev = SAMPLE_VO_DEV_VIRT0;
+		GET_VO_LAYER(*VoLayer, *VoDev);
+	}
+	else if (4 == dev_id)
+	{
+		*VoDev = SAMPLE_VO_DEV_VIRT1;
+		GET_VO_LAYER(*VoLayer, *VoDev);
+	}
+	else if (5 == dev_id)
+	{
+		*VoDev = SAMPLE_VO_DEV_VIRT2;
+		GET_VO_LAYER(*VoLayer, *VoDev);
+	}
+	else if (6 == dev_id)
+	{
+		*VoDev = SAMPLE_VO_DEV_VIRT3;
+		GET_VO_LAYER(*VoLayer, *VoDev);
+	}
+	else
+	{
+		*VoDev = SAMPLE_VO_LAYER_VHD0;
+		GET_VO_LAYER(*VoLayer, *VoDev);
+	}
+}
 //_输出用户操作界面
 int av_start_ui_out(av_platform_cfg_t av_platform_cfg)
 {
 	VO_DEV VoDev = 0;
 	VO_LAYER VoLayer = 0;
-	if (0 == av_platform_cfg.m_vo_cfg_ui.m_dev_id)
-	{
-		VoDev = SAMPLE_VO_DEV_DHD0;
-		VoLayer = SAMPLE_VO_LAYER_VHD0;
-	}
-	else if (1 == av_platform_cfg.m_vo_cfg_ui.m_dev_id)
-	{
-		VoDev = SAMPLE_VO_DEV_DHD1;
-		VoLayer = SAMPLE_VO_LAYER_VHD1;
-	}
-	else if (2 == av_platform_cfg.m_vo_cfg_ui.m_dev_id)
-	{
-		VoDev = SAMPLE_VO_DEV_DSD0;
-		VoLayer = SAMPLE_VO_LAYER_VSD0;
-	}
+	av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, av_platform_cfg.m_vo_cfg_ui.m_dev_id);
 
 	if(AV_OK != av_start_vo_dev(av_platform_cfg.m_vo_cfg_ui, VoDev, VoLayer))
 		DBG_PRT("av_start_vo_dev is failed\n");
@@ -1466,21 +1526,8 @@ int av_stop_ui_out(av_platform_cfg_t av_platform_cfg)
 {
 	VO_DEV VoDev = 0;
 	VO_LAYER VoLayer = 0;
-	if (0 == av_platform_cfg.m_vo_cfg_ui.m_dev_id)
-	{
-		VoDev = SAMPLE_VO_DEV_DHD0;
-		VoLayer = SAMPLE_VO_LAYER_VHD0;
-	}
-	else if (1 == av_platform_cfg.m_vo_cfg_ui.m_dev_id)
-	{
-		VoDev = SAMPLE_VO_DEV_DHD1;
-		VoLayer = SAMPLE_VO_LAYER_VHD1;
-	}
-	else if (2 == av_platform_cfg.m_vo_cfg_ui.m_dev_id)
-	{
-		VoDev = SAMPLE_VO_DEV_DSD0;
-		VoLayer = SAMPLE_VO_LAYER_VSD0;
-	}
+
+	av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, av_platform_cfg.m_vo_cfg_ui.m_dev_id);
 	av_stop_vo_dev(VoDev, VoLayer);
 	return AV_OK;
 }
@@ -1493,31 +1540,13 @@ int av_start_live_out(av_platform_cfg_t av_platform_cfg)
 	MPP_CHN_S stSrcChn, stDestChn;
 	vo_chn_cfg_t vo_chn_cfg;
 
-	if (0 == av_platform_cfg.m_vo_cfg_live.m_dev_id)
-	{
-		VoDev = SAMPLE_VO_DEV_DHD0;
-		VoLayer = SAMPLE_VO_LAYER_VHD0;
-	}
-	else if (1 == av_platform_cfg.m_vo_cfg_live.m_dev_id)
-	{
-		VoDev = SAMPLE_VO_DEV_DHD1;
-		VoLayer = SAMPLE_VO_LAYER_VHD1;
-	}
-	else if (2 == av_platform_cfg.m_vo_cfg_live.m_dev_id)
-	{
-		VoDev = SAMPLE_VO_DEV_DSD0;
-		VoLayer = SAMPLE_VO_LAYER_VSD0;
-	}
-	else
-	{
-		VoDev = SAMPLE_VO_LAYER_VHD0;
-	}
+	av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, av_platform_cfg.m_vo_cfg_live.m_dev_id);
 
 	if(AV_OK != av_start_vo_dev(av_platform_cfg.m_vo_cfg_live, VoDev, VoLayer))
 		DBG_PRT("av_start_vo_dev is failed\n");
 	av_platform_cfg.m_vpss_cfg_live.m_group_number = av_register_vpss_group();
 	DBG_PRT("ui out vpss grp is %d\n", av_platform_cfg.m_vpss_cfg_live.m_group_number);
-	av_start_vpss(av_platform_cfg.m_vpss_cfg_ui, av_platform_cfg.m_vpss_cfg_live.m_group_number);
+	av_start_vpss(SPECIAL_LIVE_CHN, av_platform_cfg.m_vpss_cfg_live.m_group_number);
 	vo_chn_cfg.m_chn_id = 0;
 	vo_chn_cfg.m_deflicker = 0;
 	vo_chn_cfg.m_layer_id = 0;
@@ -1543,44 +1572,233 @@ int av_stop_live_out(av_platform_cfg_t av_platform_cfg)
 	VO_DEV VoDev;
 	VO_LAYER VoLayer;
 	MPP_CHN_S stSrcChn, stDestChn;
+	vo_chn_cfg_t vo_chn_cfg;
 
-	if (0 == av_platform_cfg.m_vo_cfg_live.m_dev_id)
-	{
-		VoDev = SAMPLE_VO_DEV_DHD0;
-		VoLayer = SAMPLE_VO_LAYER_VHD0;
-	}
-	else if (1 == av_platform_cfg.m_vo_cfg_live.m_dev_id)
-	{
-		VoDev = SAMPLE_VO_DEV_DHD1;
-		VoLayer = SAMPLE_VO_LAYER_VHD1;
-	}
-	else if (2 == av_platform_cfg.m_vo_cfg_live.m_dev_id)
-	{
-		VoDev = SAMPLE_VO_DEV_DSD0;
-		VoLayer = SAMPLE_VO_LAYER_VSD0;
-	}
-	else
-	{
-		VoDev = SAMPLE_VO_DEV_DHD0;
-		VoLayer = SAMPLE_VO_LAYER_VHD0;
-	}
+	vo_chn_cfg.m_chn_id = 0;
+	vo_chn_cfg.m_deflicker = 0;
+	vo_chn_cfg.m_layer_id = 0;
+	vo_chn_cfg.m_x = 20;
+	vo_chn_cfg.m_y = 20;
+	vo_chn_cfg.m_width = 1920;
+	vo_chn_cfg.m_height = 1080;
+	av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, av_platform_cfg.m_vo_cfg_live.m_dev_id);
 	stSrcChn.enModId    = HI_ID_VIU;
 	stSrcChn.s32DevId   = 0;
 	stSrcChn.s32ChnId   = VPSS_CHN_TYPE_RENDER;
 
 	stDestChn.enModId   = HI_ID_VOU;
-	stDestChn.s32ChnId  = av_platform_cfg.m_vo_chn_cfg_ui.m_chn_id;
+	stDestChn.s32ChnId  = vo_chn_cfg.m_chn_id;
 	stDestChn.s32DevId  = VoLayer;
 	HI_MPI_SYS_UnBind(stSrcChn, stDestChn);
 
-	av_stop_vpss(av_platform_cfg.m_vpss_cfg_live.m_group_number , VPSS_CHN_TYPE_RENDER);
-	av_stop_vo_chn(av_platform_cfg.m_vo_chn_cfg_ui, VoLayer);
+	av_stop_vpss(av_platform_cfg.m_vpss_cfg_live.m_group_number);
+	av_stop_vo_chn(vo_chn_cfg, VoLayer);
 	av_stop_vo_dev(VoDev, VoLayer);
+	return AV_OK;
+}
+
+int av_start_vir_vo(av_platform_cfg_t av_platform_cfg)
+{
+	VO_DEV VoDev;
+	VO_LAYER VoLayer;
+	MPP_CHN_S stSrcChn, stDestChn;
+	vo_chn_cfg_t vo_chn_cfg;
+
+	av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, av_platform_cfg.m_vo_cfg_live.m_dev_id);
+
+	if(AV_OK != av_start_vo_dev(av_platform_cfg.m_vo_cfg_live, VoDev, VoLayer))
+		DBG_PRT("av_start_vo_dev is failed\n");
+	av_platform_cfg.m_vpss_cfg_live.m_group_number = av_register_vpss_group();
+	DBG_PRT("ui out vpss grp is %d\n", av_platform_cfg.m_vpss_cfg_live.m_group_number);
+	av_start_vpss(SPECIAL_LIVE_CHN, av_platform_cfg.m_vpss_cfg_live.m_group_number);
+	vo_chn_cfg.m_chn_id = 0;
+	vo_chn_cfg.m_deflicker = 0;
+	vo_chn_cfg.m_layer_id = 0;
+	vo_chn_cfg.m_x = 20;
+	vo_chn_cfg.m_y = 20;
+	vo_chn_cfg.m_width = 1920;
+	vo_chn_cfg.m_height = 1080;
+	av_start_vo_chn(vo_chn_cfg, VoLayer);
+	stSrcChn.enModId    = HI_ID_VIU;
+	stSrcChn.s32DevId   = 0;
+	stSrcChn.s32ChnId   = VPSS_CHN_TYPE_RENDER;
+
+	return AV_OK;
+}
+
+int av_stop_vir_vo(av_platform_cfg_t av_platform_cfg)
+{
+
+	return AV_OK;
+}
+
+int av_set_com_rect(compound_cfg_t *p_set_chn, divison_mode_t division_mode) //画中画模式
+{
+	int i = 0;
+	p_set_chn->m_division_mode = division_mode;
+	switch(division_mode)
+	{
+	case DIVISON_MODE_0:
+		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
+		p_set_chn->m_count = 1;
+		p_set_chn->m_rect[0].m_width = p_set_chn->m_width;
+		p_set_chn->m_rect[0].m_height = p_set_chn->m_height;
+		p_set_chn->m_rect[0].m_x = 0;
+		p_set_chn->m_rect[0].m_y = 0;
+		break;
+	case DIVISON_MODE_1:
+		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
+		p_set_chn->m_count = 2;
+		p_set_chn->m_rect[0].m_width = p_set_chn->m_width;
+		p_set_chn->m_rect[0].m_height = p_set_chn->m_height;
+		p_set_chn->m_rect[0].m_x = 0;
+		p_set_chn->m_rect[0].m_y = 0;
+		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/3;
+		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/3;
+		p_set_chn->m_rect[1].m_x = p_set_chn->m_width*2/3;
+		p_set_chn->m_rect[1].m_y = p_set_chn->m_height*2/3;
+		break;
+	case DIVISON_MODE_2:
+		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
+		p_set_chn->m_count = 2;
+		p_set_chn->m_rect[0].m_width = p_set_chn->m_width*2/3;
+		p_set_chn->m_rect[0].m_height = p_set_chn->m_height*2/3;
+		p_set_chn->m_rect[0].m_x = 0;
+		p_set_chn->m_rect[0].m_y = 0;
+		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/3;
+		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/3;
+		p_set_chn->m_rect[1].m_x = p_set_chn->m_width*2/3;
+		p_set_chn->m_rect[1].m_y = p_set_chn->m_height*2/3;
+		break;
+	case DIVISON_MODE_3:
+		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
+		p_set_chn->m_count = 2;
+		p_set_chn->m_rect[0].m_width = p_set_chn->m_width/2;
+		p_set_chn->m_rect[0].m_height = p_set_chn->m_height/2;
+		p_set_chn->m_rect[0].m_x = 0;
+		p_set_chn->m_rect[0].m_y = p_set_chn->m_height/4;
+		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/2;
+		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/2;
+		p_set_chn->m_rect[1].m_x = p_set_chn->m_width/2;
+		p_set_chn->m_rect[1].m_y = p_set_chn->m_height/4;
+		break;
+	case DIVISON_MODE_4:
+		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
+		p_set_chn->m_count = 3;
+		p_set_chn->m_rect[0].m_width = p_set_chn->m_width*2/3;
+		p_set_chn->m_rect[0].m_height = p_set_chn->m_height;
+		p_set_chn->m_rect[0].m_x = p_set_chn->m_width/3;
+		p_set_chn->m_rect[0].m_y = 0;
+		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/3;
+		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/3;
+		p_set_chn->m_rect[1].m_x = 0;
+		p_set_chn->m_rect[1].m_y = p_set_chn->m_height/2-p_set_chn->m_height/3;
+		p_set_chn->m_rect[2].m_width = p_set_chn->m_width/3;
+		p_set_chn->m_rect[2].m_height = p_set_chn->m_height/3;
+		p_set_chn->m_rect[2].m_x = 0;
+		p_set_chn->m_rect[2].m_y = p_set_chn->m_height/2;
+		break;
+	case DIVISON_MODE_5:
+		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
+		p_set_chn->m_count = 3;
+		p_set_chn->m_rect[0].m_width = p_set_chn->m_width*2/3;
+		p_set_chn->m_rect[0].m_height = p_set_chn->m_height;
+		p_set_chn->m_rect[0].m_x = 0;
+		p_set_chn->m_rect[0].m_y = 0;
+		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/3;
+		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/3;
+		p_set_chn->m_rect[1].m_x = p_set_chn->m_width*2/3;
+		p_set_chn->m_rect[1].m_y = p_set_chn->m_height/2-p_set_chn->m_height/3;
+		p_set_chn->m_rect[2].m_width = p_set_chn->m_width/3;
+		p_set_chn->m_rect[2].m_height = p_set_chn->m_height/3;
+		p_set_chn->m_rect[2].m_x = p_set_chn->m_width*2/3;
+		p_set_chn->m_rect[2].m_y = p_set_chn->m_height/2;
+		break;
+	case DIVISON_MODE_6:
+		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
+		p_set_chn->m_count = 3;
+		p_set_chn->m_rect[0].m_width = p_set_chn->m_width/2;
+		p_set_chn->m_rect[0].m_height = p_set_chn->m_height/2;
+		p_set_chn->m_rect[0].m_x = p_set_chn->m_width/4;
+		p_set_chn->m_rect[0].m_y = 0;
+		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/2;
+		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/2;
+		p_set_chn->m_rect[1].m_x = 0;
+		p_set_chn->m_rect[1].m_y = p_set_chn->m_height/2;
+		p_set_chn->m_rect[2].m_width = p_set_chn->m_width/2;
+		p_set_chn->m_rect[2].m_height = p_set_chn->m_height/2;
+		p_set_chn->m_rect[2].m_x = p_set_chn->m_width/2;
+		p_set_chn->m_rect[2].m_y = p_set_chn->m_height/2;
+		break;
+	case DIVISON_MODE_7:
+		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
+		p_set_chn->m_count = 4;
+		p_set_chn->m_rect[0].m_width = p_set_chn->m_width/2;
+		p_set_chn->m_rect[0].m_height = p_set_chn->m_height/2;
+		p_set_chn->m_rect[0].m_x = 0;
+		p_set_chn->m_rect[0].m_y = 0;
+		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/2;
+		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/2;
+		p_set_chn->m_rect[1].m_x = 0;
+		p_set_chn->m_rect[1].m_y = p_set_chn->m_height/2;
+		p_set_chn->m_rect[2].m_width = p_set_chn->m_width/2;
+		p_set_chn->m_rect[2].m_height = p_set_chn->m_height/2;
+		p_set_chn->m_rect[2].m_x = p_set_chn->m_width/2;
+		p_set_chn->m_rect[2].m_y = 0;
+		p_set_chn->m_rect[3].m_width = p_set_chn->m_width/2;
+		p_set_chn->m_rect[3].m_height = p_set_chn->m_height/2;
+		p_set_chn->m_rect[3].m_x = p_set_chn->m_width/2;
+		p_set_chn->m_rect[3].m_y = p_set_chn->m_height/2;
+		break;
+	case DIVISON_MODE_8:
+		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
+		p_set_chn->m_count = 6;
+		p_set_chn->m_rect[0].m_width = p_set_chn->m_width*2/3;
+		p_set_chn->m_rect[0].m_height = p_set_chn->m_height*2/3;
+		p_set_chn->m_rect[0].m_x = 0;
+		p_set_chn->m_rect[0].m_y = 0;
+		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/3;
+		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/3;
+		p_set_chn->m_rect[1].m_x = 0;
+		p_set_chn->m_rect[1].m_y = p_set_chn->m_height*2/3;
+		p_set_chn->m_rect[2].m_width = p_set_chn->m_width/3;
+		p_set_chn->m_rect[2].m_height = p_set_chn->m_height/3;
+		p_set_chn->m_rect[2].m_x = p_set_chn->m_width/3;
+		p_set_chn->m_rect[2].m_y = p_set_chn->m_height*2/3;
+		p_set_chn->m_rect[3].m_width = p_set_chn->m_width/3;
+		p_set_chn->m_rect[3].m_height = p_set_chn->m_height/3;
+		p_set_chn->m_rect[3].m_x = p_set_chn->m_width*2/3;
+		p_set_chn->m_rect[3].m_y = 0;
+		p_set_chn->m_rect[4].m_width = p_set_chn->m_width/3;
+		p_set_chn->m_rect[4].m_height = p_set_chn->m_height/3;
+		p_set_chn->m_rect[4].m_x = p_set_chn->m_width*2/3;
+		p_set_chn->m_rect[4].m_y = p_set_chn->m_height/3;
+		p_set_chn->m_rect[5].m_width = p_set_chn->m_width/3;
+		p_set_chn->m_rect[5].m_height = p_set_chn->m_height/3;
+		p_set_chn->m_rect[5].m_x = p_set_chn->m_width*2/3;
+		p_set_chn->m_rect[5].m_y = p_set_chn->m_height*2/3;
+		break;
+	case DIVISON_MODE_USER1:
+
+		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
+		p_set_chn->m_count = 1;
+		//for(i = 0;i < p_set_chn->m_count;i++)
+		{
+			p_set_chn->m_rect[i].m_width = 1920;
+			p_set_chn->m_rect[i].m_height = 1080;
+			p_set_chn->m_rect[i].m_x = 0;
+			p_set_chn->m_rect[i].m_y = 0;
+		}
+		break;
+	default:
+		break;
+	}
 	return AV_OK;
 }
 
 int av_init_cfg()
 {
+	int i = 0, j = 0;
 	memset(&g_av_platform_ctx, 0, sizeof(g_av_platform_ctx));
 	g_av_platform_ctx.m_major_height_max = 1080;
 	g_av_platform_ctx.m_major_width_max = 1920;
@@ -1595,7 +1813,7 @@ int av_init_cfg()
 	g_av_platform_ctx.m_vichn_cnt = 6;	
 	g_av_platform_ctx.m_filechn_cnt = 2;
 	g_av_platform_ctx.m_remotechn_cnt = 4;
-	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_dev_id = 0;	//DH0
+	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_dev_id = VO_DEV_DHD0;	//DH0
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_out_dev_type = OUT_DEV_TYPE_VGA;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_resulotion_type = RESULOTION_TYPE_1920X1080;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_frame_rate_type = FRAME_RATE_TYPE_60;
@@ -1622,12 +1840,66 @@ int av_init_cfg()
 	g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_width = 1920;
 	g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_height = 1080;
 	//____________________________________________
-	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_dev_id = 1;//DH1
+	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_dev_id = VO_DEV_DHD1;//DH1
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_out_dev_type = (OUT_DEV_TYPE_HDMI | OUT_DEV_TYPE_BT1120);
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_resulotion_type = RESULOTION_TYPE_1920X1080;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_frame_rate_type = FRAME_RATE_TYPE_60;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_bg_color = 0x0;
+	//compound
+	//movie
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_width = 1920;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_height = 1080;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_count = 0;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_chn[0] = VI_CHN_START + 1;//_默认显示第二路vi画面
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_chn[1] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_chn[2] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_chn[3] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_chn[4] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_chn[5] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_show_mode = COMPOUND_SHOW_MODE_SCALE;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_division_mode = DIVISON_MODE_0;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vo_dev_cfg.m_dev_id = VO_DEV_VIRT0;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vo_dev_cfg.m_out_dev_type = OUT_DEV_TYPE_BT1120;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vo_dev_cfg.m_resulotion_type = RESULOTION_TYPE_1920X1080;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vo_dev_cfg.m_frame_rate_type = FRAME_RATE_TYPE_60;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vo_dev_cfg.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
+	//pvw
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_width = 960;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_height = 540;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_count = 0;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[0] = VI_CHN_START + 1;//_默认显示第二路vi画面
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[1] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[2] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[3] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[4] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[5] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_show_mode = COMPOUND_SHOW_MODE_SCALE;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_division_mode = DIVISON_MODE_0;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_dev_id = VO_DEV_VIRT1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_out_dev_type = OUT_DEV_TYPE_BT1120;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_resulotion_type = RESULOTION_TYPE_1280X720;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_frame_rate_type = FRAME_RATE_TYPE_50;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
+
+	//vp
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_width = 960;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_height = 540;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_count = 0;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[0] = VI_CHN_START + 1;//_默认显示第2路vi画面
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[1] = VI_CHN_START + 3;//_默认显示第3路vi画面
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[2] = VI_CHN_START + 4;//_默认显示第4路vi画面
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[3] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[4] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[5] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_show_mode = COMPOUND_SHOW_MODE_SCALE;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_division_mode = DIVISON_MODE_4;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_dev_id = VO_DEV_VIRT2;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_out_dev_type = OUT_DEV_TYPE_BT1120;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_resulotion_type = RESULOTION_TYPE_1920X1080;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_frame_rate_type = FRAME_RATE_TYPE_60;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
+	
 	return AV_OK;
 }
 

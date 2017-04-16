@@ -53,13 +53,33 @@ extern "C"
 #define SAMPLE_VO_DEV_DHD1 1
 #define SAMPLE_VO_DEV_DSD0 2
 #define SAMPLE_VO_DEV_VIRT0 3
+#define SAMPLE_VO_DEV_VIRT1 4
+#define SAMPLE_VO_DEV_VIRT2 5
+#define SAMPLE_VO_DEV_VIRT3 6
 #define SAMPLE_VO_DEV_DSD1 -1
+
+typedef enum _vo_dev_id_e
+{
+	VO_DEV_DHD0 = 0,
+	VO_DEV_DHD1 = 1,
+	VO_DEV_DSD0 = 2,
+	VO_DEV_VIRT0 = 3,
+	VO_DEV_VIRT1 = 4,
+	VO_DEV_VIRT2 = 5,
+	VO_DEV_VIRT3 = 6,
+}vo_dev_id_s;
 
 #define SAMPLE_VO_LAYER_VHD0 0
 #define SAMPLE_VO_LAYER_VHD1 1
 #define SAMPLE_VO_LAYER_VPIP 2
 #define SAMPLE_VO_LAYER_VSD0 3
 #define SAMPLE_VO_LAYER_VIRT0 4
+#define SAMPLE_VO_LAYER_VIRT1 5
+#define SAMPLE_VO_LAYER_VIRT2 6
+#define SAMPLE_VO_LAYER_VIRT3 7
+
+#define GET_VO_LAYER(VO_LAYER, VO_DEV)	do {if(VO_DEV < 2) VO_LAYER = VO_DEV;else VO_LAYER = VO_DEV + 1;} while (0);
+
 
 
 #define VO_LAYER_PIP      2
@@ -114,6 +134,35 @@ extern "C"
 #define _720P_HEIGHT             720
 
 #define VI_CHN_START	3
+#define COMPOUND_SUB_CHN_MAX     6
+
+typedef enum _compound_chn_e
+{
+	COMPOUND_CHN_MOVIE = 0,				//_电影画面
+	COMPOUND_CHN_PVW = 1,				//_预览画面
+	COMPOUND_CHN_VP	=2,					//_视频会议
+}compound_chn_t;
+
+typedef enum _show_mode_e
+{
+	SHOW_MODE_SCALE	= 0,
+	SHOW_MODE_STRETCH = 1,
+	SHOW_MODE_CROP	= 2,
+}show_mode_t;
+
+typedef enum _divison_mode_e
+{
+	DIVISON_MODE_0	= 0,
+	DIVISON_MODE_1	= 1,
+	DIVISON_MODE_2	= 2,
+	DIVISON_MODE_3	= 3,
+	DIVISON_MODE_4	= 4,
+	DIVISON_MODE_5	= 5,
+	DIVISON_MODE_6	= 6,
+	DIVISON_MODE_7	= 7,
+	DIVISON_MODE_8	= 8,
+	DIVISON_MODE_USER1	= 9
+}divison_mode_t;
 
 
 #ifdef __cplusplus

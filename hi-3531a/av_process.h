@@ -20,6 +20,8 @@
 #define YUV422   1
 #define YUV444   2
 
+#define SPECIAL_LIVE_CHN  -1
+
 
 #ifdef __cplusplus
 extern "C"
@@ -28,10 +30,11 @@ extern "C"
 
 #include "../thirtyparty/pthread_win32/pthread.h"
 #include "../core/core_channel.h"
+#include "../core/core_global_def.h"
 
 typedef struct _vo_dev_cfg_s
 {
-	int m_dev_id;							//_设备ID：0-DH0  1-DH1  2-SD0
+	vo_dev_id_s m_dev_id;					//_设备ID：0-DH0  1-DH1  2-SD0 3-VirVo0 4-VirVo1  5-VirVo2  6-VirVo3
 	unsigned int m_out_dev_type;			//_输出设备类型
 	resulotion_type_t m_resulotion_type;	//_输出分辨率类型
 	frame_rate_type_t m_frame_rate_type;	//_输出设备帧率类型
@@ -39,14 +42,27 @@ typedef struct _vo_dev_cfg_s
 	unsigned int m_bg_color;				//_画面背景颜色
 }av_vo_dev_cfg_t, *pav_vo_dev_cfg_t;
 
+//_合成vo配置
+typedef struct _compound_cfg_s
+{
+	int m_width;							//_合成主区域宽
+	int m_height;							//_合成主区域高
+	divison_mode_t m_division_mode;			//_分屏模式
+	show_mode_t m_show_mode;				//_特效模式
+	int m_count;							//_画面总数
+	int m_chn[COMPOUND_SUB_CHN_MAX];		//_画面对应源通道索引号数组
+	CHN_RECT m_rect[COMPOUND_SUB_CHN_MAX];	//_画面区域坐标
+	av_vo_dev_cfg_t m_vo_dev_cfg;			//_输出的vo设备
+	vpss_cfg_t m_vpss_cfg;					//_与vo设备绑定的vpss参数
+}compound_cfg_t, *pcompound_cfg_t;
+
 typedef struct __av_platform_cfg_s
 {
-	av_vo_dev_cfg_t m_vo_cfg_ui;			//_UI输出设备配置
-	//vo_chn_cfg_t m_vo_chn_cfg_ui;			//_UI输出VO通道
-	vpss_cfg_t m_vpss_cfg_ui;				//_UI输出设备VPSS参数
-	av_vo_dev_cfg_t m_vo_cfg_live;			//_LIVE输出设备配置
-	//vo_chn_cfg_t m_vo_chn_cfg_live;			//_LIVE输出VO通道
-	vpss_cfg_t m_vpss_cfg_live;				//_LIVE输出设备VPSS参数
+	av_vo_dev_cfg_t m_vo_cfg_ui;						//_UI输出设备配置
+	vpss_cfg_t m_vpss_cfg_ui;							//_UI输出设备VPSS参数
+	av_vo_dev_cfg_t m_vo_cfg_live;						//_LIVE输出设备配置
+	vpss_cfg_t m_vpss_cfg_live;							//_LIVE输出设备VPSS参数
+	compound_cfg_t m_compound_cfg[VI_CHN_START];		//_合成画面配置参数
 }av_platform_cfg_t;
 
 typedef struct _av_platform_ctx_s

@@ -55,6 +55,14 @@ typedef enum _vpss_chn_mode_e
 	VPSS_CHN_MODE_USER = 1,
 }vpss_chn_mode_t;
 
+typedef struct _CHN_RECT
+{
+	int m_x;
+	int m_y;
+	int m_width;
+	int m_height;
+}CHN_RECT;
+
 typedef struct _vo_chn_cfg_s
 {
 	int m_chn_id;							//_chn id
