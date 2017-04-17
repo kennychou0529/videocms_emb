@@ -97,10 +97,10 @@ typedef struct _vpss_cfg_s
 	unsigned int m_max_width;				//_vpss最大图像宽度
 	unsigned int m_max_height;				//_vpss最大图像高度
 	pixel_fmt_type_t m_pixel_fmt_type;		//_输出设备YUV格式类型
-	vpss_chn_mode_t m_en_major_user_mode;;				//_使能major_vpss通道用户模式
-	vpss_chn_mode_t m_en_minor_user_mode;;				//_使能minor_vpss通道用户模式
-	vpss_chn_mode_t m_en_minor2_user_mode;;			//_使能minor2_vpss通道用户模式
-	vpss_chn_mode_t m_en_render_user_mode;;			//_使能render_vpss通道用户模式
+	vpss_chn_mode_t m_en_major_user_mode;	//_使能major_vpss通道用户模式
+	vpss_chn_mode_t m_en_minor_user_mode;	//_使能minor_vpss通道用户模式
+	vpss_chn_mode_t m_en_minor2_user_mode;	//_使能minor2_vpss通道用户模式
+	vpss_chn_mode_t m_en_render_user_mode;	//_使能render_vpss通道用户模式
 	char m_en_die_mode;						//_启用die模式
 	char m_en_ie;							//_启用ie功能
 	char m_en_dci;							//_启用dci功能

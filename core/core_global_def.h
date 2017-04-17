@@ -133,14 +133,16 @@ typedef enum _vo_dev_id_e
 #define _720P_WIDTH              1280
 #define _720P_HEIGHT             720
 
+#define VIR_VO_DEV_MAX			4
 #define VI_CHN_START	3
 #define COMPOUND_SUB_CHN_MAX     6
 
 typedef enum _compound_chn_e
 {
-	COMPOUND_CHN_MOVIE = 0,				//_电影画面
-	COMPOUND_CHN_PVW = 1,				//_预览画面
-	COMPOUND_CHN_VP	=2,					//_视频会议
+	COMPOUND_CHN_MOVIE = 0,					//_电影画面
+	COMPOUND_CHN_PVW = 1,					//_预览画面
+	COMPOUND_CHN_VP	= 2,					//_视频会议
+	COMPOUND_CHN_EFF = 3,					//_视频会议
 }compound_chn_t;
 
 typedef enum _show_mode_e

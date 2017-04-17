@@ -21,6 +21,10 @@
 #define YUV444   2
 
 #define SPECIAL_LIVE_CHN  -1
+#define SPECIAL_VIR0_CHN  -2
+#define SPECIAL_VIR1_CHN  -3
+#define SPECIAL_VIR2_CHN  -4
+#define SPECIAL_VIR3_CHN  -5
 
 
 #ifdef __cplusplus
@@ -62,7 +66,7 @@ typedef struct __av_platform_cfg_s
 	vpss_cfg_t m_vpss_cfg_ui;							//_UI输出设备VPSS参数
 	av_vo_dev_cfg_t m_vo_cfg_live;						//_LIVE输出设备配置
 	vpss_cfg_t m_vpss_cfg_live;							//_LIVE输出设备VPSS参数
-	compound_cfg_t m_compound_cfg[VI_CHN_START];		//_合成画面配置参数
+	compound_cfg_t m_compound_cfg[VIR_VO_DEV_MAX];		//_合成画面配置参数
 }av_platform_cfg_t;
 
 typedef struct _av_platform_ctx_s

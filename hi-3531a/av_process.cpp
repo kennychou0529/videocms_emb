@@ -781,7 +781,22 @@ int av_start_vpss(int channel_index, VPSS_GRP vpss_grp)
 	{
 		p_vpss_cfg = &g_av_platform_ctx.m_cfg.m_vpss_cfg_ui;
 	}
-	
+	else if(SPECIAL_VIR0_CHN == channel_index)
+	{
+		p_vpss_cfg = &g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vpss_cfg;
+	}
+	else if(SPECIAL_VIR1_CHN == channel_index)
+	{
+		p_vpss_cfg = &g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vpss_cfg;
+	}
+	else if(SPECIAL_VIR2_CHN == channel_index)
+	{
+		p_vpss_cfg = &g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_vpss_cfg;
+	}
+	else if(SPECIAL_VIR3_CHN == channel_index)
+	{
+
+	}
 
 	stGrpAttr.u32MaxW = p_vpss_cfg->m_max_width;
 	stGrpAttr.u32Max = p_vpss_cfg->m_max_height;
@@ -1603,25 +1618,63 @@ int av_start_vir_vo(av_platform_cfg_t av_platform_cfg)
 	VO_LAYER VoLayer;
 	MPP_CHN_S stSrcChn, stDestChn;
 	vo_chn_cfg_t vo_chn_cfg;
+	int i = 0;
+	compound_cfg_t *p_compound_cfg;
 
-	av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, av_platform_cfg.m_vo_cfg_live.m_dev_id);
+	for (i = 0; i < VIR_VO_DEV_MAX;i++)
+	{
+		p_compound_cfg = &av_platform_cfg.m_compound_cfg[i];
+		av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, p_compound_cfg->m_vo_dev_cfg.m_dev_id);
 
-	if(AV_OK != av_start_vo_dev(av_platform_cfg.m_vo_cfg_live, VoDev, VoLayer))
-		DBG_PRT("av_start_vo_dev is failed\n");
-	av_platform_cfg.m_vpss_cfg_live.m_group_number = av_register_vpss_group();
-	DBG_PRT("ui out vpss grp is %d\n", av_platform_cfg.m_vpss_cfg_live.m_group_number);
-	av_start_vpss(SPECIAL_LIVE_CHN, av_platform_cfg.m_vpss_cfg_live.m_group_number);
-	vo_chn_cfg.m_chn_id = 0;
-	vo_chn_cfg.m_deflicker = 0;
-	vo_chn_cfg.m_layer_id = 0;
-	vo_chn_cfg.m_x = 20;
-	vo_chn_cfg.m_y = 20;
-	vo_chn_cfg.m_width = 1920;
-	vo_chn_cfg.m_height = 1080;
-	av_start_vo_chn(vo_chn_cfg, VoLayer);
-	stSrcChn.enModId    = HI_ID_VIU;
-	stSrcChn.s32DevId   = 0;
-	stSrcChn.s32ChnId   = VPSS_CHN_TYPE_RENDER;
+		if(AV_OK != av_start_vo_dev(p_compound_cfg->m_vo_dev_cfg, VoDev, VoLayer))
+			DBG_PRT("av_start_vir_vo dev %d is failed\n", i);
+		//===========================================
+		vo_chn_cfg.m_chn_id = VO_MAX_CHN_NUM - 1;
+		vo_chn_cfg.m_deflicker = 0;
+		vo_chn_cfg.m_layer_id = 0;
+		vo_chn_cfg.m_x = 0;
+		vo_chn_cfg.m_y = 0;
+		vo_chn_cfg.m_width = 1920;
+		vo_chn_cfg.m_height = 1080;
+		av_start_vo_chn(vo_chn_cfg, VoLayer);
+		//===========================================
+		if (-1 == p_compound_cfg->m_vpss_cfg.m_group_number)
+		{
+			p_compound_cfg->m_vpss_cfg.m_group_number = av_register_vpss_group();
+		}
+		else
+		{
+			DBG_PRT("[%d] compound m_group_number is err\n", p_compound_cfg->m_vpss_cfg.m_group_number);
+		}
+		
+		
+		DBG_PRT("ui out vpss grp is %d\n", p_compound_cfg->m_vpss_cfg.m_group_number);
+		if (0 == i)
+		{
+			av_start_vpss(SPECIAL_VIR0_CHN, p_compound_cfg->m_vpss_cfg.m_group_number);
+		}
+		if (1 == i)
+		{
+			av_start_vpss(SPECIAL_VIR1_CHN, p_compound_cfg->m_vpss_cfg.m_group_number);
+		}
+		if (2 == i)
+		{
+			av_start_vpss(SPECIAL_VIR2_CHN, p_compound_cfg->m_vpss_cfg.m_group_number);
+		}
+		if (3 == i)
+		{
+			av_start_vpss(SPECIAL_VIR3_CHN, p_compound_cfg->m_vpss_cfg.m_group_number);
+		}
+	
+		stSrcChn.enModId    = HI_ID_VOU;
+		stSrcChn.s32DevId   = VoDev;
+		stSrcChn.s32ChnId   = 0;
+
+		stDestChn.enModId   = HI_ID_VPSS;
+		stDestChn.s32ChnId  = p_compound_cfg->m_vpss_cfg.m_group_number;
+		stDestChn.s32DevId  = VPSS_CHN_TYPE_RENDER;
+		HI_MPI_SYS_Bind(&stSrcChn, &stDestChn);
+	}
 
 	return AV_OK;
 }
@@ -1779,16 +1832,15 @@ int av_set_com_rect(compound_cfg_t *p_set_chn, divison_mode_t division_mode) //»
 		p_set_chn->m_rect[5].m_y = p_set_chn->m_height*2/3;
 		break;
 	case DIVISON_MODE_USER1:
-
-		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
-		p_set_chn->m_count = 1;
-		//for(i = 0;i < p_set_chn->m_count;i++)
-		{
-			p_set_chn->m_rect[i].m_width = 1920;
-			p_set_chn->m_rect[i].m_height = 1080;
-			p_set_chn->m_rect[i].m_x = 0;
-			p_set_chn->m_rect[i].m_y = 0;
-		}
+// 		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
+// 		p_set_chn->m_count = 1;
+// 		//for(i = 0;i < p_set_chn->m_count;i++)
+// 		{
+// 			p_set_chn->m_rect[i].m_width = 1920;
+// 			p_set_chn->m_rect[i].m_height = 1080;
+// 			p_set_chn->m_rect[i].m_x = 0;
+// 			p_set_chn->m_rect[i].m_y = 0;
+// 		}
 		break;
 	default:
 		break;
@@ -1837,8 +1889,8 @@ int av_init_cfg()
 // 	g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_sfStrength = 0;
 	//_Group end
 	g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
-	g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_width = 1920;
-	g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_height = 1080;
+	g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_width = HD_WIDTH;
+	g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_height = HD_HEIGHT;
 	//____________________________________________
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_dev_id = VO_DEV_DHD1;//DH1
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_out_dev_type = (OUT_DEV_TYPE_HDMI | OUT_DEV_TYPE_BT1120);
@@ -1848,8 +1900,8 @@ int av_init_cfg()
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_bg_color = 0x0;
 	//compound
 	//movie
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_width = 1920;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_height = 1080;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_width = HD_WIDTH;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_height = HD_HEIGHT;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_count = 0;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_chn[0] = VI_CHN_START + 1;//_Ä¬ÈÏÏÔÊ¾µÚ¶þÂ·vi»­Ãæ
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_chn[1] = -1;
@@ -1857,13 +1909,17 @@ int av_init_cfg()
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_chn[3] = -1;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_chn[4] = -1;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_chn[5] = -1;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_show_mode = COMPOUND_SHOW_MODE_SCALE;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_show_mode = SHOW_MODE_SCALE;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_division_mode = DIVISON_MODE_0;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vo_dev_cfg.m_dev_id = VO_DEV_VIRT0;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vo_dev_cfg.m_out_dev_type = OUT_DEV_TYPE_BT1120;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vo_dev_cfg.m_resulotion_type = RESULOTION_TYPE_1920X1080;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vo_dev_cfg.m_frame_rate_type = FRAME_RATE_TYPE_60;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vo_dev_cfg.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vpss_cfg.m_group_number = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vpss_cfg.m_max_width = HD_WIDTH;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vpss_cfg.m_max_height = HD_HEIGHT;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vpss_cfg.m_en_render_user_mode = VPSS_CHN_MODE_USER;
 	//pvw
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_width = 960;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_height = 540;
@@ -1874,32 +1930,60 @@ int av_init_cfg()
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[3] = -1;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[4] = -1;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[5] = -1;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_show_mode = COMPOUND_SHOW_MODE_SCALE;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_show_mode = SHOW_MODE_SCALE;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_division_mode = DIVISON_MODE_0;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_dev_id = VO_DEV_VIRT1;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_out_dev_type = OUT_DEV_TYPE_BT1120;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_resulotion_type = RESULOTION_TYPE_1280X720;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_frame_rate_type = FRAME_RATE_TYPE_50;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
-
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vpss_cfg.m_group_number = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vpss_cfg.m_max_width = HD_WIDTH;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vpss_cfg.m_max_height = HD_HEIGHT;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vpss_cfg.m_en_render_user_mode = VPSS_CHN_MODE_USER;
 	//vp
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_width = 960;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_height = 540;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_count = 0;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[0] = VI_CHN_START + 1;//_Ä¬ÈÏÏÔÊ¾µÚ2Â·vi»­Ãæ
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[1] = VI_CHN_START + 3;//_Ä¬ÈÏÏÔÊ¾µÚ3Â·vi»­Ãæ
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[2] = VI_CHN_START + 4;//_Ä¬ÈÏÏÔÊ¾µÚ4Â·vi»­Ãæ
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[3] = -1;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[4] = -1;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_chn[5] = -1;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_show_mode = COMPOUND_SHOW_MODE_SCALE;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_division_mode = DIVISON_MODE_4;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_dev_id = VO_DEV_VIRT2;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_out_dev_type = OUT_DEV_TYPE_BT1120;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_resulotion_type = RESULOTION_TYPE_1920X1080;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_frame_rate_type = FRAME_RATE_TYPE_60;
-	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vo_dev_cfg.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
-	
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_width = HD_WIDTH;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_height = HD_HEIGHT;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_count = 0;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_chn[0] = VI_CHN_START + 1;//_Ä¬ÈÏÏÔÊ¾µÚ2Â·vi»­Ãæ
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_chn[1] = VI_CHN_START + 3;//_Ä¬ÈÏÏÔÊ¾µÚ3Â·vi»­Ãæ
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_chn[2] = VI_CHN_START + 4;//_Ä¬ÈÏÏÔÊ¾µÚ4Â·vi»­Ãæ
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_chn[3] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_chn[4] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_chn[5] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_show_mode = SHOW_MODE_SCALE;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_division_mode = DIVISON_MODE_4;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_vo_dev_cfg.m_dev_id = VO_DEV_VIRT2;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_vo_dev_cfg.m_out_dev_type = OUT_DEV_TYPE_BT1120;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_vo_dev_cfg.m_resulotion_type = RESULOTION_TYPE_1920X1080;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_vo_dev_cfg.m_frame_rate_type = FRAME_RATE_TYPE_60;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_vo_dev_cfg.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_vpss_cfg.m_group_number = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_vpss_cfg.m_max_width = HD_WIDTH;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_vpss_cfg.m_max_height = HD_HEIGHT;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_vpss_cfg.m_en_render_user_mode = VPSS_CHN_MODE_USER;
+	//effect
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_width = HD_WIDTH;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_height = HD_HEIGHT;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_count = 0;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_chn[0] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_chn[1] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_chn[2] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_chn[3] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_chn[4] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_chn[5] = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_show_mode = SHOW_MODE_SCALE;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_division_mode = DIVISON_MODE_4;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_vo_dev_cfg.m_dev_id = VO_DEV_VIRT3;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_vo_dev_cfg.m_out_dev_type = OUT_DEV_TYPE_BT1120;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_vo_dev_cfg.m_resulotion_type = RESULOTION_TYPE_1920X1080;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_vo_dev_cfg.m_frame_rate_type = FRAME_RATE_TYPE_60;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_vo_dev_cfg.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_vpss_cfg.m_group_number = -1;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_vpss_cfg.m_max_width = HD_WIDTH;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_vpss_cfg.m_max_height = HD_HEIGHT;
+	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_vpss_cfg.m_en_render_user_mode = VPSS_CHN_MODE_USER;
+
 	return AV_OK;
 }
 
