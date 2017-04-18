@@ -27,6 +27,12 @@
     <ClCompile Include="core\core_channel.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="hi-3531a\av_handler.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="hi-3531a\av_tde_process.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hi-3531a\av_process.h">
@@ -45,6 +51,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="core\core_channel.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="hi-3531a\av_handler.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="hi-3531a\av_tde_process.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

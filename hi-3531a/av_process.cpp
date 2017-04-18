@@ -228,7 +228,37 @@ int av_unregister_vpss_group(int grp_number)
 	return AV_OK;
 }
 
-int av_start_vo_dev(av_vo_cfg_t av_vo_cfg, VO_DEV vo_dev, VO_LAYER vo_layer)
+int av_set_compound_vo_rect(compound_chn_t compound_chn, compound_cfg_t *compound_cfg)
+{
+	if (compound_chn < 0 || compound_chn > COMPOUND_CHN_EFF || !compound_cfg)
+	{
+		return AV_ERR_INVALID_PARAM;
+	}
+	
+	return AV_OK;
+}
+
+int av_start_compound_vo_chn(compound_chn_t compound_chn, compound_cfg_t *compound_cfg)
+{
+	if (compound_chn < 0 || compound_chn > COMPOUND_CHN_EFF || !compound_cfg)
+	{
+		return AV_ERR_INVALID_PARAM;
+	}
+
+	return AV_OK;
+}
+
+int av_stop_compound_vo_chn(compound_chn_t compound_chn, compound_cfg_t *compound_cfg)
+{
+	if (compound_chn < 0 || compound_chn > COMPOUND_CHN_EFF || !compound_cfg)
+	{
+		return AV_ERR_INVALID_PARAM;
+	}
+
+	return AV_OK;
+}
+
+int av_start_vo_dev(av_vo_dev_cfg_t av_vo_cfg, VO_DEV vo_dev, VO_LAYER vo_layer)
 {
 	int tmp_width = 0, tmp_height = 0;
 	VO_DEV VoDev = vo_dev;
@@ -1570,7 +1600,7 @@ int av_start_live_out(av_platform_cfg_t av_platform_cfg)
 	vo_chn_cfg.m_width = 1920;
 	vo_chn_cfg.m_height = 1080;
 	av_start_vo_chn(vo_chn_cfg, VoLayer);
-	stSrcChn.enModId    = HI_ID_VIU;
+	stSrcChn.enModId    = HI_ID_VPSS;
 	stSrcChn.s32DevId   = 0;
 	stSrcChn.s32ChnId   = VPSS_CHN_TYPE_RENDER;
 
@@ -1597,7 +1627,7 @@ int av_stop_live_out(av_platform_cfg_t av_platform_cfg)
 	vo_chn_cfg.m_width = 1920;
 	vo_chn_cfg.m_height = 1080;
 	av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, av_platform_cfg.m_vo_cfg_live.m_dev_id);
-	stSrcChn.enModId    = HI_ID_VIU;
+	stSrcChn.enModId    = HI_ID_VPSS;
 	stSrcChn.s32DevId   = 0;
 	stSrcChn.s32ChnId   = VPSS_CHN_TYPE_RENDER;
 
@@ -1681,170 +1711,36 @@ int av_start_vir_vo(av_platform_cfg_t av_platform_cfg)
 
 int av_stop_vir_vo(av_platform_cfg_t av_platform_cfg)
 {
-
-	return AV_OK;
-}
-
-int av_set_com_rect(compound_cfg_t *p_set_chn, divison_mode_t division_mode) //»­ÖÐ»­Ä£Ê½
-{
+	VO_DEV VoDev;
+	VO_LAYER VoLayer;
+	MPP_CHN_S stSrcChn, stDestChn;
+	vo_chn_cfg_t vo_chn_cfg;
 	int i = 0;
-	p_set_chn->m_division_mode = division_mode;
-	switch(division_mode)
+
+	for (i = 0; i < VIR_VO_DEV_MAX;i++)
 	{
-	case DIVISON_MODE_0:
-		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
-		p_set_chn->m_count = 1;
-		p_set_chn->m_rect[0].m_width = p_set_chn->m_width;
-		p_set_chn->m_rect[0].m_height = p_set_chn->m_height;
-		p_set_chn->m_rect[0].m_x = 0;
-		p_set_chn->m_rect[0].m_y = 0;
-		break;
-	case DIVISON_MODE_1:
-		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
-		p_set_chn->m_count = 2;
-		p_set_chn->m_rect[0].m_width = p_set_chn->m_width;
-		p_set_chn->m_rect[0].m_height = p_set_chn->m_height;
-		p_set_chn->m_rect[0].m_x = 0;
-		p_set_chn->m_rect[0].m_y = 0;
-		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/3;
-		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/3;
-		p_set_chn->m_rect[1].m_x = p_set_chn->m_width*2/3;
-		p_set_chn->m_rect[1].m_y = p_set_chn->m_height*2/3;
-		break;
-	case DIVISON_MODE_2:
-		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
-		p_set_chn->m_count = 2;
-		p_set_chn->m_rect[0].m_width = p_set_chn->m_width*2/3;
-		p_set_chn->m_rect[0].m_height = p_set_chn->m_height*2/3;
-		p_set_chn->m_rect[0].m_x = 0;
-		p_set_chn->m_rect[0].m_y = 0;
-		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/3;
-		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/3;
-		p_set_chn->m_rect[1].m_x = p_set_chn->m_width*2/3;
-		p_set_chn->m_rect[1].m_y = p_set_chn->m_height*2/3;
-		break;
-	case DIVISON_MODE_3:
-		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
-		p_set_chn->m_count = 2;
-		p_set_chn->m_rect[0].m_width = p_set_chn->m_width/2;
-		p_set_chn->m_rect[0].m_height = p_set_chn->m_height/2;
-		p_set_chn->m_rect[0].m_x = 0;
-		p_set_chn->m_rect[0].m_y = p_set_chn->m_height/4;
-		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/2;
-		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/2;
-		p_set_chn->m_rect[1].m_x = p_set_chn->m_width/2;
-		p_set_chn->m_rect[1].m_y = p_set_chn->m_height/4;
-		break;
-	case DIVISON_MODE_4:
-		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
-		p_set_chn->m_count = 3;
-		p_set_chn->m_rect[0].m_width = p_set_chn->m_width*2/3;
-		p_set_chn->m_rect[0].m_height = p_set_chn->m_height;
-		p_set_chn->m_rect[0].m_x = p_set_chn->m_width/3;
-		p_set_chn->m_rect[0].m_y = 0;
-		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/3;
-		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/3;
-		p_set_chn->m_rect[1].m_x = 0;
-		p_set_chn->m_rect[1].m_y = p_set_chn->m_height/2-p_set_chn->m_height/3;
-		p_set_chn->m_rect[2].m_width = p_set_chn->m_width/3;
-		p_set_chn->m_rect[2].m_height = p_set_chn->m_height/3;
-		p_set_chn->m_rect[2].m_x = 0;
-		p_set_chn->m_rect[2].m_y = p_set_chn->m_height/2;
-		break;
-	case DIVISON_MODE_5:
-		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
-		p_set_chn->m_count = 3;
-		p_set_chn->m_rect[0].m_width = p_set_chn->m_width*2/3;
-		p_set_chn->m_rect[0].m_height = p_set_chn->m_height;
-		p_set_chn->m_rect[0].m_x = 0;
-		p_set_chn->m_rect[0].m_y = 0;
-		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/3;
-		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/3;
-		p_set_chn->m_rect[1].m_x = p_set_chn->m_width*2/3;
-		p_set_chn->m_rect[1].m_y = p_set_chn->m_height/2-p_set_chn->m_height/3;
-		p_set_chn->m_rect[2].m_width = p_set_chn->m_width/3;
-		p_set_chn->m_rect[2].m_height = p_set_chn->m_height/3;
-		p_set_chn->m_rect[2].m_x = p_set_chn->m_width*2/3;
-		p_set_chn->m_rect[2].m_y = p_set_chn->m_height/2;
-		break;
-	case DIVISON_MODE_6:
-		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
-		p_set_chn->m_count = 3;
-		p_set_chn->m_rect[0].m_width = p_set_chn->m_width/2;
-		p_set_chn->m_rect[0].m_height = p_set_chn->m_height/2;
-		p_set_chn->m_rect[0].m_x = p_set_chn->m_width/4;
-		p_set_chn->m_rect[0].m_y = 0;
-		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/2;
-		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/2;
-		p_set_chn->m_rect[1].m_x = 0;
-		p_set_chn->m_rect[1].m_y = p_set_chn->m_height/2;
-		p_set_chn->m_rect[2].m_width = p_set_chn->m_width/2;
-		p_set_chn->m_rect[2].m_height = p_set_chn->m_height/2;
-		p_set_chn->m_rect[2].m_x = p_set_chn->m_width/2;
-		p_set_chn->m_rect[2].m_y = p_set_chn->m_height/2;
-		break;
-	case DIVISON_MODE_7:
-		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
-		p_set_chn->m_count = 4;
-		p_set_chn->m_rect[0].m_width = p_set_chn->m_width/2;
-		p_set_chn->m_rect[0].m_height = p_set_chn->m_height/2;
-		p_set_chn->m_rect[0].m_x = 0;
-		p_set_chn->m_rect[0].m_y = 0;
-		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/2;
-		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/2;
-		p_set_chn->m_rect[1].m_x = 0;
-		p_set_chn->m_rect[1].m_y = p_set_chn->m_height/2;
-		p_set_chn->m_rect[2].m_width = p_set_chn->m_width/2;
-		p_set_chn->m_rect[2].m_height = p_set_chn->m_height/2;
-		p_set_chn->m_rect[2].m_x = p_set_chn->m_width/2;
-		p_set_chn->m_rect[2].m_y = 0;
-		p_set_chn->m_rect[3].m_width = p_set_chn->m_width/2;
-		p_set_chn->m_rect[3].m_height = p_set_chn->m_height/2;
-		p_set_chn->m_rect[3].m_x = p_set_chn->m_width/2;
-		p_set_chn->m_rect[3].m_y = p_set_chn->m_height/2;
-		break;
-	case DIVISON_MODE_8:
-		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
-		p_set_chn->m_count = 6;
-		p_set_chn->m_rect[0].m_width = p_set_chn->m_width*2/3;
-		p_set_chn->m_rect[0].m_height = p_set_chn->m_height*2/3;
-		p_set_chn->m_rect[0].m_x = 0;
-		p_set_chn->m_rect[0].m_y = 0;
-		p_set_chn->m_rect[1].m_width = p_set_chn->m_width/3;
-		p_set_chn->m_rect[1].m_height = p_set_chn->m_height/3;
-		p_set_chn->m_rect[1].m_x = 0;
-		p_set_chn->m_rect[1].m_y = p_set_chn->m_height*2/3;
-		p_set_chn->m_rect[2].m_width = p_set_chn->m_width/3;
-		p_set_chn->m_rect[2].m_height = p_set_chn->m_height/3;
-		p_set_chn->m_rect[2].m_x = p_set_chn->m_width/3;
-		p_set_chn->m_rect[2].m_y = p_set_chn->m_height*2/3;
-		p_set_chn->m_rect[3].m_width = p_set_chn->m_width/3;
-		p_set_chn->m_rect[3].m_height = p_set_chn->m_height/3;
-		p_set_chn->m_rect[3].m_x = p_set_chn->m_width*2/3;
-		p_set_chn->m_rect[3].m_y = 0;
-		p_set_chn->m_rect[4].m_width = p_set_chn->m_width/3;
-		p_set_chn->m_rect[4].m_height = p_set_chn->m_height/3;
-		p_set_chn->m_rect[4].m_x = p_set_chn->m_width*2/3;
-		p_set_chn->m_rect[4].m_y = p_set_chn->m_height/3;
-		p_set_chn->m_rect[5].m_width = p_set_chn->m_width/3;
-		p_set_chn->m_rect[5].m_height = p_set_chn->m_height/3;
-		p_set_chn->m_rect[5].m_x = p_set_chn->m_width*2/3;
-		p_set_chn->m_rect[5].m_y = p_set_chn->m_height*2/3;
-		break;
-	case DIVISON_MODE_USER1:
-// 		p_set_chn->m_show_mode = SHOW_MODE_SCALE;
-// 		p_set_chn->m_count = 1;
-// 		//for(i = 0;i < p_set_chn->m_count;i++)
-// 		{
-// 			p_set_chn->m_rect[i].m_width = 1920;
-// 			p_set_chn->m_rect[i].m_height = 1080;
-// 			p_set_chn->m_rect[i].m_x = 0;
-// 			p_set_chn->m_rect[i].m_y = 0;
-// 		}
-		break;
-	default:
-		break;
+		vo_chn_cfg.m_chn_id = VO_MAX_CHN_NUM - 1;
+		vo_chn_cfg.m_deflicker = 0;
+		vo_chn_cfg.m_layer_id = 0;
+		vo_chn_cfg.m_x = 0;
+		vo_chn_cfg.m_y = 0;
+		vo_chn_cfg.m_width = 1920;
+		vo_chn_cfg.m_height = 1080;
+		av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, av_platform_cfg.m_compound_cfg[i].m_vo_dev_cfg.m_dev_id);
+		stSrcChn.enModId    = HI_ID_VOU;
+		stSrcChn.s32DevId   = VoDev;
+		stSrcChn.s32ChnId   = 0;
+
+		stDestChn.enModId   = HI_ID_VPSS;
+		stDestChn.s32ChnId  = p_compound_cfg->m_vpss_cfg.m_group_number;
+		stDestChn.s32DevId  = VPSS_CHN_TYPE_RENDER;
+		HI_MPI_SYS_UnBind(&stSrcChn, &stDestChn);
+
+		av_stop_vpss(av_platform_cfg.m_compound_cfg[i].m_vpss_cfg.m_group_number);
+		av_stop_vo_chn(vo_chn_cfg, VoLayer);
+		av_stop_vo_dev(VoDev, VoLayer);
 	}
+
 	return AV_OK;
 }
 

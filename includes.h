@@ -49,7 +49,9 @@ extern "C"
 #include "sample_user_def.h"
 /////////////////////////////////////////////////////////////////////////////
 
+#include "hi-3531a/av_handler.h"
 #include "hi-3531a/av_process.h"
+#include "hi-3531a/av_tde_process.h"
 #include "core/core_manager.h"
 #include "thirtyparty/cjson/cJSON.h"
 #include "core/core_global_def.h"
