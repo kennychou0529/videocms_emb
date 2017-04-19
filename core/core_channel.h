@@ -28,12 +28,6 @@ typedef enum _frame_rate_type_e
 	FRAME_RATE_TYPE_25 = 3,
 }frame_rate_type_t;
 
-typedef enum _pixel_fmt_type_e
-{
-	PIXEL_FMT_TYPE_YUV422 = 0,
-	PIXEL_FMT_TYPE_YUV420 = 1,
-}pixel_fmt_type_t;
-
 typedef enum _vpss_chn_type_e
 {
 	VPSS_CHN_TYPE_MAJOR = 0,

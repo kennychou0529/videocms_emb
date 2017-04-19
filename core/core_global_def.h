@@ -202,6 +202,12 @@ typedef enum _effect_mode_e
 	EFFECT_MODE_MIDDLE	= 23,
 }effect_mode_t;
 
+typedef enum _pixel_fmt_type_e
+{
+	PIXEL_FMT_TYPE_YUV422 = 0,
+	PIXEL_FMT_TYPE_YUV420 = 1,
+}pixel_fmt_type_t;
+
 #ifdef __cplusplus
 }
 #endif

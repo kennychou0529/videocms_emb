@@ -228,11 +228,26 @@ int av_unregister_vpss_group(int grp_number)
 	return AV_OK;
 }
 
-int av_set_compound_vo_rect(compound_chn_t compound_chn, compound_cfg_t *compound_cfg)
+int av_set_compound_vo_rect(compound_chn_t compound_chn, compound_cfg_t *pset_compound_cfg)
 {
-	if (compound_chn < 0 || compound_chn > COMPOUND_CHN_EFF || !compound_cfg)
+	if (compound_chn < 0 || compound_chn > COMPOUND_CHN_EFF || !pset_compound_cfg)
 	{
 		return AV_ERR_INVALID_PARAM;
+	}
+	int i = 0;
+	channel_data_t *p_chn_data;
+	channel_cfg_t *p_chn_cfg;
+	compound_cfg_t *p_compound_cfg = &g_av_platform_ctx.m_cfg.m_compound_cfg[compound_chn];
+	if (pset_compound_cfg->m_division_mode != p_compound_cfg->m_division_mode || pset_compound_cfg->m_show_mode != p_compound_cfg->m_show_mode || pset_compound_cfg->m_count != p_compound_cfg->m_count)
+	{
+		for (i = 0; i < pset_compound_cfg->m_count; i++)
+		{
+			if ()
+			{
+			}
+			
+		}
+		
 	}
 	
 	return AV_OK;
