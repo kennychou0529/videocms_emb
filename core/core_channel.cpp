@@ -29,7 +29,7 @@ int core_channel_init_cfg(int channel_index)
 	p_chn_cfg->m_major_venc_height = 1080;
 	p_chn_cfg->m_minor_venc_fps = 25;
 	p_chn_cfg->m_minor_venc_width = 640;
-	p_chn_cfg->m_minor_venc_hight = 360;
+	p_chn_cfg->m_minor_venc_height = 360;
 	p_chn_cfg->m_minor2_venc_fps = 25;
 	p_chn_cfg->m_minor2_venc_width = 960;
 	p_chn_cfg->m_minor2_venc_height = 540;

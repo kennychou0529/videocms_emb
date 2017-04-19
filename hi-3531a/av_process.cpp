@@ -228,6 +228,103 @@ int av_unregister_vpss_group(int grp_number)
 	return AV_OK;
 }
 
+int av_get_com_vpsschn(int iChannel, int w, int h)
+{
+	channel_data_t *p_chan_dat = g_av_platform_ctx.m_all_channel_ptr[iChannel];
+	int req_size = w*h;
+	int tmp_size = 0;
+	int threshold_val = 100000;
+
+	tmp_size = p_chan_dat->m_raw_width * p_chan_dat->m_raw_height;
+	if (req_size >= tmp_size)
+	{
+		return 0;
+	}
+
+	if(p_chan_dat->m_minor_vpss_chn >= 0)
+	{
+		tmp_size = p_chan_dat->m_minor_venc_width * p_chan_dat->m_minor2_venc_height;
+		if(req_size < tmp_size + threshold_val)
+		{
+			return p_chan_dat->m_minor_vpss_chn;
+		}
+	}
+
+	if(p_chan_dat->m_minor2_vpss_chn >= 0)
+	{
+		tmp_size = p_chan_dat->m_minor2_venc_width * p_chan_dat->m_minor2_venc_width;
+		if(req_size < tmp_size + threshold_val)
+		{
+			return p_chan_dat->m_minor2_vpss_chn;
+		}
+	}
+
+	if(p_chan_dat->m_major_vpss_chn >= 0)
+	{
+		tmp_size = p_chan_dat->m_major_venc_width * p_chan_dat->m_major_venc_height;
+		if(req_size < tmp_size + threshold_val)
+		{
+			return p_chan_dat->m_major_vpss_chn;
+		}
+	}
+	DBG_PRT("major_vpss_chn:%d, minor_vpss_chn:%d, minor2_vpss_chn:%d\n",p_chan_dat->m_major_vpss_chn,p_chan_dat->m_minor_vpss_chn,p_chan_dat->m_minor2_vpss_chn);
+	return 0;
+}
+
+int av_cap_set_vpss_mode(int iChannelIdx, VPSS_GRP VpssGrp ,VPSS_CHN VpssChn, VPSS_CHN_MODE_E mode)
+{
+	HI_S32 s32Ret;
+	VPSS_CHN_MODE_S stVpssMode;
+	int w,h;
+	channel_data_t *p_chan_dat = g_av_platform_ctx.m_all_channel_ptr[iChannelIdx];
+	if (VPSS_CHN_TYPE_MAJOR == VpssChn)
+	{
+		w = (p_chan_dat->m_major_venc_width)&0xFFFFFFFC;
+		h = (p_chan_dat->m_major_venc_height)&0xFFFFFFFC;
+	}
+	else if (VPSS_CHN_TYPE_MINOR == VpssChn)
+	{
+		w = (p_chan_dat->m_minor_venc_width)&0xFFFFFFFC;
+		h = (p_chan_dat->m_minor_venc_height)&0xFFFFFFFC;
+	}
+	else if (VPSS_CHN_TYPE_MINOR2 == VpssChn)
+	{
+		w = (p_chan_dat->m_minor2_venc_width)&0xFFFFFFFC;
+		h = (p_chan_dat->m_minor2_venc_height)&0xFFFFFFFC;
+	}
+	else if (VPSS_CHN_TYPE_RENDER == VpssChn)
+	{
+		w = (p_chan_dat->m_raw_width)&0xFFFFFFFC;
+		h = (p_chan_dat->m_raw_height)&0xFFFFFFFC;
+	}
+
+	s32Ret = HI_MPI_VPSS_GetChnMode(VpssGrp,VpssChn,&stVpssMode);
+	if (s32Ret != HI_SUCCESS)
+	{
+		DBG_PRT("[%d]HI_MPI_VPSS_GetChnMode (%d,%d) failed with 0x%08X!\n",iChannelIdx, VpssGrp, VpssChn, s32Ret);
+		return AV_FALSE;
+	}
+	if(mode == VPSS_CHN_MODE_USER)
+	{
+		stVpssMode.enChnMode = VPSS_CHN_MODE_USER;
+	}
+	else
+	{
+		stVpssMode.enChnMode = VPSS_CHN_MODE_AUTO;
+	}
+	stVpssMode.u32Width = w;
+	stVpssMode.u32Height = h;
+	stVpssMode.bDouble = HI_FALSE;
+	stVpssMode.enPixelFormat = PIXEL_FORMAT_YUV_SEMIPLANAR_420 ;   /* sp420 or sp422 */
+	s32Ret = HI_MPI_VPSS_SetChnMode(VpssGrp,VpssChn,&stVpssMode);
+	if (s32Ret != HI_SUCCESS)
+	{
+		DBG_PRT("[%d/%d]HI_MPI_VPSS_SetChnMode failed with 0x%08X!\n", VpssChn,VpssGrp,s32Ret);
+		return AV_FALSE;
+	}
+	return AV_OK;
+}
+
 int av_set_compound_vo_rect(compound_chn_t compound_chn, compound_cfg_t *pset_compound_cfg)
 {
 	if (compound_chn < 0 || compound_chn > COMPOUND_CHN_EFF || !pset_compound_cfg)
@@ -235,19 +332,253 @@ int av_set_compound_vo_rect(compound_chn_t compound_chn, compound_cfg_t *pset_co
 		return AV_ERR_INVALID_PARAM;
 	}
 	int i = 0;
+	int chn_cnt = g_av_platform_ctx.m_vichn_cnt + g_av_platform_ctx.m_filechn_cnt + g_av_platform_ctx.m_remotechn_cnt + VI_CHN_START;
 	channel_data_t *p_chn_data;
 	channel_cfg_t *p_chn_cfg;
+	VO_CHN_ATTR_S stVoChnAttr;
+	MPP_CHN_S stSrcChn;
+	MPP_CHN_S stDestChn;
+	HI_S32 s32Ret;
+	VO_DEV VoDev;
+	VO_LAYER VoLayer;
 	compound_cfg_t *p_compound_cfg = &g_av_platform_ctx.m_cfg.m_compound_cfg[compound_chn];
+
+
+	av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, p_compound_cfg->m_vo_dev_cfg.m_dev_id);
 	if (pset_compound_cfg->m_division_mode != p_compound_cfg->m_division_mode || pset_compound_cfg->m_show_mode != p_compound_cfg->m_show_mode || pset_compound_cfg->m_count != p_compound_cfg->m_count)
 	{
 		for (i = 0; i < pset_compound_cfg->m_count; i++)
 		{
-			if ()
+			if (p_compound_cfg->m_chn[i] < 0 || p_compound_cfg->m_chn[i] > chn_cnt)
 			{
+				p_chn_data = NULL;
 			}
-			
+			else
+			{
+				p_chn_data = g_av_platform_ctx.m_all_channel_ptr[p_compound_cfg->m_chn[i]];
+			}
+			if (p_chn_data && SHOW_MODE_SCALE == pset_compound_cfg->m_show_mode)
+			{
+				double scale;
+				double scale_f = (double)pset_compound_cfg->m_rect[i].m_width/(double)pset_compound_cfg->m_rect[i].m_height;
+				double scale_s = (double)p_chn_data->m_raw_width / (double)p_chn_data->m_raw_height;
+				if ( scale_s > scale_f )
+				{
+					scale = (double)p_chn_data->m_raw_width / (double)pset_compound_cfg->m_rect[i].m_width;
+					stVoChnAttr.stRect.u32Width = pset_compound_cfg->m_rect[i].m_width & 0xFFFFFFFE;
+					stVoChnAttr.stRect.u32Height = ((unsigned int)((double)p_chn_data->m_raw_height/scale)) & 0xFFFFFFFE;
+					stVoChnAttr.stRect.s32X = pset_compound_cfg->m_rect[i].m_x & 0xFFFFFFFE;
+					stVoChnAttr.stRect.s32Y = (pset_compound_cfg->m_rect[i].m_y + (pset_compound_cfg->m_rect[i].m_height-stVoChnAttr.stRect.u32Height)/2) & 0xFFFFFFFE;
+				}else{
+					scale = (double)p_chn_data->m_raw_height / (double)pset_compound_cfg->m_rect[i].m_height;
+					stVoChnAttr.stRect.u32Width = ((unsigned int)((double)p_chn_data->m_raw_width/scale)) & 0xFFFFFFFE;
+					stVoChnAttr.stRect.u32Height = pset_compound_cfg->m_rect[i].m_height & 0xFFFFFFFE;
+					stVoChnAttr.stRect.s32X = (pset_compound_cfg->m_rect[i].m_x + (pset_compound_cfg->m_rect[i].m_width-stVoChnAttr.stRect.u32Width)/2) & 0xFFFFFFFE;
+					stVoChnAttr.stRect.s32Y = pset_compound_cfg->m_rect[i].m_y & 0xFFFFFFFE;
+				}
+			}
+			else
+			{
+				stVoChnAttr.stRect.u32Width = pset_compound_cfg->m_rect[i].m_width & 0xFFFFFFFE;
+				stVoChnAttr.stRect.u32Height = pset_compound_cfg->m_rect[i].m_height & 0xFFFFFFFE;
+				stVoChnAttr.stRect.s32X = pset_compound_cfg->m_rect[i].m_x & 0xFFFFFFFE;
+				stVoChnAttr.stRect.s32Y = pset_compound_cfg->m_rect[i].m_y & 0xFFFFFFFE;
+			}	
+			s32Ret = HI_MPI_VO_SetChnAttr(VoDev, i, &stVoChnAttr);
+			if (s32Ret != HI_SUCCESS)
+			{
+				DBG_PRT("[%d/%d]HI_MPI_VO_SetChnAttr failed width 0x%X!\n", i,VoDev,s32Ret);
+			}
+			if((pset_compound_cfg->m_chn[i] >= VI_CHN_START) && (pset_compound_cfg->m_chn[i] < chn_cnt))
+			{
+				int vpsschn1 = -1;
+				int vpsschn2 = -1;
+				stDestChn.enModId   = HI_ID_VOU;
+				stDestChn.s32ChnId  = i;
+				stDestChn.s32DevId  = VoDev;
+				s32Ret = HI_MPI_SYS_GetBindbyDest(&stDestChn, &stSrcChn);
+				if (s32Ret != HI_SUCCESS)
+				{
+					DBG_PRT("HI_MPI_SYS_GetBindbyDest(%d,%d) failed width 0x%08X!\n", stDestChn.s32DevId, stDestChn.s32ChnId, s32Ret);
+					vpsschn1 = -1;
+				}else
+				{
+					vpsschn1 = stSrcChn.s32ChnId;
+				}
+				if(stSrcChn.enModId == HI_ID_VPSS)
+				{
+					vpsschn2 = av_get_com_vpsschn(p_compound_cfg->m_chn[i], pset_compound_cfg->m_rect[i].m_width, pset_compound_cfg->m_rect[i].m_height);
+					if(vpsschn2<0)
+					{
+						DBG_PRT("requested vpsschn[%d] failed with chn=%d, w=%d, h=%d\n", vpsschn2, p_compound_cfg->m_chn[i], pset_compound_cfg->m_rect[i].m_width, pset_compound_cfg->m_rect[i].m_height);
+						break;
+					}
+					else
+					{
+						DBG_PRT("av_get_com_vpsschn filed vpsschn[%d] success chn=%d, w=%d, h=%d\n", vpsschn2, p_compound_cfg->m_chn[i], pset_compound_cfg->m_rect[i].m_width, pset_compound_cfg->m_rect[i].m_height);
+					}
+
+					if( vpsschn1 != vpsschn2 )
+					{
+						DBG_PRT("vpsschn1[%d] ->> vpsschn2[%d]\n",vpsschn1, vpsschn2);
+
+						p_chn_data = g_av_platform_ctx.m_all_channel_ptr[p_compound_cfg->m_chn[i]];
+						p_chn_cfg = &p_chn_data->m_cfg;
+						p_chn_cfg->m_vpss_cfg.m_vpss_bind_cnt[vpsschn1]--;
+						if(0 == p_chn_cfg->m_vpss_cfg.m_vpss_bind_cnt[vpsschn1])
+						{
+							av_cap_set_vpss_mode(p_compound_cfg->m_chn[i], p_chn_cfg->m_vpss_cfg.m_group_number, vpsschn1, VPSS_CHN_MODE_AUTO);
+						}
+						s32Ret = HI_MPI_SYS_UnBind(&stSrcChn, &stDestChn);
+						if (s32Ret != HI_SUCCESS)
+						{
+							DBG_PRT("[%d]HI_MPI_SYS_Bind failed!\n", VoDev);
+						}
+						stSrcChn.enModId	= HI_ID_VPSS;
+						stSrcChn.s32DevId	= p_chn_cfg->m_vpss_cfg.m_group_number;
+						stSrcChn.s32ChnId	= vpsschn2;
+						p_chn_cfg->m_vpss_cfg.m_vpss_bind_cnt[vpsschn2]++;
+						if(1 == p_chn_cfg->m_vpss_cfg.m_vpss_bind_cnt[vpsschn2])
+						{
+							av_cap_set_vpss_mode(p_compound_cfg->m_chn[i],p_chn_cfg->m_vpss_cfg.m_group_number,vpsschn2,VPSS_CHN_MODE_USER);
+						}
+						s32Ret = HI_MPI_SYS_Bind(&stSrcChn, &stDestChn);
+						if (s32Ret != HI_SUCCESS)
+						{
+							DBG_PRT("[%d]HI_MPI_SYS_Bind failed!\n", VoDev);
+						}
+					}
+				}
+			}
+			p_compound_cfg->m_rect[i].m_x = pset_compound_cfg->m_rect[i].m_x;
+			p_compound_cfg->m_rect[i].m_y = pset_compound_cfg->m_rect[i].m_y;
+			p_compound_cfg->m_rect[i].m_width = pset_compound_cfg->m_rect[i].m_width;
+			p_compound_cfg->m_rect[i].m_height = pset_compound_cfg->m_rect[i].m_height;
 		}
-		
+		if (p_compound_cfg->m_count < pset_compound_cfg->m_count)
+		{
+			for (i = p_compound_cfg->m_count; i < pset_compound_cfg->m_count;i++)
+			{
+				if ((p_compound_cfg->m_chn[i] < VI_CHN_START) || (p_compound_cfg->m_chn[i] >= chn_cnt))
+				{
+					DBG_PRT("wrong chn[%d] in Dev[%d/%d]\n", p_compound_cfg->m_chn[i], i, VoDev);
+					p_chn_data = NULL;
+				}
+				else
+				{
+					p_chn_data = g_av_platform_ctx.m_all_channel_ptr[p_compound_cfg->m_chn[i]];
+					s32Ret = HI_MPI_VO_EnableChn(VoDev, i);
+					if (s32Ret != HI_SUCCESS)
+					{
+						DBG_PRT("[%d/%d]HI_MPI_VO_EnableChn failed width 0x%X!\n", i,VoDev,s32Ret);
+					}
+					s32Ret = HI_MPI_VO_SetChnFrameRate(VoDev, i, p_chn_data->m_raw_fps + VO_FPS_ACCEL);
+					if (s32Ret != HI_SUCCESS)
+					{
+						DBG_PRT("HI_MPI_VO_SetChnFrameRate[%d,%d] %dfps failed width 0x%X!\n", VoDev, i, p_chn_data->m_raw_fps, s32Ret);
+					}
+					if(p_chn_data->m_channel_type == CHANNEL_TYPE_LOCAL_CHANNEL)
+					{
+						continue;
+					}
+					else if(p_chn_data->m_channel_type == CHANNEL_TYPE_FILE_CHANNEL)
+					{
+					}
+					else if(p_chn_data->m_channel_type == CHANNEL_TYPE_REMOTE_CHANNEL )
+					{
+					}
+					else
+					{
+						DBG_PRT("unknow channel type[%d] in comchn[%d, %d].\n",p_chn_data->m_channel_type, compound_chn, i);
+					}
+					s32Ret = HI_MPI_VO_ClearChnBuffer(VoDev, i, HI_TRUE);
+					if (s32Ret != HI_SUCCESS)
+					{
+						DBG_PRT("[%d]HI_MPI_VO_ClearChnBuffer[%d,%d] failed with 0x%08X!\n",VoDev, i, s32Ret);
+					}
+					stDestChn.enModId   = HI_ID_VOU;
+					stDestChn.s32ChnId  = i;
+					stDestChn.s32DevId  = VoDev;
+					s32Ret = HI_MPI_SYS_Bind(&stSrcChn, &stDestChn);
+					if (s32Ret != HI_SUCCESS)
+					{
+						DBG_PRT("(%d[%d]-%d[%d])HI_MPI_SYS_Bind failed with 0x%08X!\n",stSrcChn.s32DevId,stSrcChn.s32ChnId,stDestChn.s32DevId,stDestChn.s32ChnId,s32Ret);
+					}
+				}
+			}	
+		}
+		else if(pset_compound_cfg->m_count < p_compound_cfg->m_count)
+		{
+			
+			for(i = pset_compound_cfg->m_count; i < p_compound_cfg->m_count; i++)
+			{
+				stDestChn.enModId   = HI_ID_VOU;
+				stDestChn.s32ChnId  = i;
+				stDestChn.s32DevId  = VoDev;
+				s32Ret = HI_MPI_SYS_GetBindbyDest(&stDestChn, &stSrcChn);
+				if (s32Ret != HI_SUCCESS)
+				{
+					DBG_PRT("HI_MPI_SYS_GetBindbyDest(%d,%d) failed width 0x%08X!\n", stDestChn.s32DevId, stDestChn.s32ChnId, s32Ret);
+
+				}
+				else
+				{
+					s32Ret = HI_MPI_SYS_UnBind(&stSrcChn, &stDestChn);
+					if (s32Ret != HI_SUCCESS)
+					{
+						DBG_PRT("(%d[%d]-%d[%d])HI_MPI_SYS_UnBind failed with 0x%08X!\n",stSrcChn.s32DevId,stSrcChn.s32ChnId,stDestChn.s32DevId,stDestChn.s32ChnId,s32Ret);
+					}
+				}
+				if ((p_compound_cfg->m_chn[i] < VI_CHN_START) || (p_compound_cfg->m_chn[i] >= chn_cnt))
+				{
+					DBG_PRT("wrong chn[%d] in Dev[%d/%d]\n", p_compound_cfg->m_chn[i], i, VoDev);
+					p_chn_data = NULL;
+				}else{
+					p_chn_data = g_av_platform_ctx.m_all_channel_ptr[p_compound_cfg->m_chn[i]];
+					if(p_chn_data->m_channel_type == CHANNEL_TYPE_LOCAL_CHANNEL)
+					{
+						if(stSrcChn.enModId	== HI_ID_VPSS)
+						{
+							int vpsschn = stSrcChn.s32ChnId;
+							p_chn_data->m_cfg.m_vpss_cfg.m_vpss_bind_cnt[vpsschn]--;
+							if(p_chn_data->m_cfg.m_vpss_cfg.m_vpss_bind_cnt[vpsschn] <= 0)
+							{
+								p_chn_data->m_cfg.m_vpss_cfg.m_vpss_bind_cnt[vpsschn] = 0;
+								av_cap_set_vpss_mode(p_compound_cfg->m_chn[i],p_chn_data->m_cfg.m_vpss_cfg.m_group_number,vpsschn,VPSS_CHN_MODE_AUTO);
+							}
+						}
+						else if(stSrcChn.enModId == HI_ID_VIU)
+						{
+						}
+						else
+						{
+							DBG_PRT("[%d]====== fatal ===\n",compound_chn);
+						}
+					}
+					else if(p_chn_data->m_channel_type == CHANNEL_TYPE_FILE_CHANNEL)
+					{
+					}
+					else if(p_chn_data->m_channel_type == CHANNEL_TYPE_REMOTE_CHANNEL)
+					{
+
+					}
+					else
+					{
+						DBG_PRT("unknow channel type[%d] in comchn[%d, %d].\n",p_chn_data->m_channel_type, compound_chn, i);
+					}
+				}
+				s32Ret = HI_MPI_VO_DisableChn(VoDev, i);
+				if (s32Ret != HI_SUCCESS)
+				{
+					DBG_PRT("[%d/%d]HI_MPI_VO_DisableChn failed width 0x%X!\n", i,VoDev,s32Ret);
+				}
+			}
+		}
+		p_compound_cfg->m_division_mode = pset_compound_cfg->m_division_mode;
+		p_compound_cfg->m_show_mode = pset_compound_cfg->m_show_mode;
+		p_compound_cfg->m_count = pset_compound_cfg->m_count;
+		p_compound_cfg->m_width = pset_compound_cfg->m_width;
+		p_compound_cfg->m_height = pset_compound_cfg->m_height;
 	}
 	
 	return AV_OK;
@@ -707,7 +1038,7 @@ int av_set_vpss_chn_mode(int channel_index, VPSS_GRP VpssGrp, int VpssChn)
 
 	if (VPSS_CHN_TYPE_MAJOR == VpssChn)
 	{
-		if (VPSS_CHN_MODE_USER == p_vpss_cfg->m_en_major_user_mode)
+		if (p_vpss_cfg->m_vpss_bind_cnt[0] >= 1)
 		{
 			HI_MPI_VPSS_GetChnMode(VpssGrp, VpssChn, &pstVpssMode);
 			pstVpssMode.u32Width = p_chn_cfg->m_major_venc_width;
@@ -736,11 +1067,11 @@ int av_set_vpss_chn_mode(int channel_index, VPSS_GRP VpssGrp, int VpssChn)
 	}
 	else if (VPSS_CHN_TYPE_MINOR == VpssChn)
 	{
-		if (VPSS_CHN_MODE_USER == p_vpss_cfg->m_en_minor_user_mode)
+		if (p_vpss_cfg->m_vpss_bind_cnt[1] >= 1)
 		{
 			HI_MPI_VPSS_GetChnMode(VpssGrp, VpssChn, &pstVpssMode);
 			pstVpssMode.u32Width = p_chn_cfg->m_minor_venc_width;
-			pstVpssMode.u32Height = p_chn_cfg->m_minor_venc_hight;
+			pstVpssMode.u32Height = p_chn_cfg->m_minor_venc_height;
 			pstVpssMode.enPixelFormat = p_chn_cfg->m_pix_format;
 			pstVpssMode.bDouble = HI_FALSE;
 			pstVpssMode.enChnMode = VPSS_CHN_MODE_USER;
@@ -764,7 +1095,7 @@ int av_set_vpss_chn_mode(int channel_index, VPSS_GRP VpssGrp, int VpssChn)
 	}
 	else if (VPSS_CHN_TYPE_MINOR2 == VpssChn && )
 	{
-		if (VPSS_CHN_MODE_USER == p_vpss_cfg->m_en_minor2_user_mode)
+		if (p_vpss_cfg->m_vpss_bind_cnt[2] >= 1)
 		{
 			HI_MPI_VPSS_GetChnMode(VpssGrp, VpssChn, &pstVpssMode);
 			pstVpssMode.u32Width = p_chn_cfg->m_minor2_venc_width;
@@ -790,7 +1121,7 @@ int av_set_vpss_chn_mode(int channel_index, VPSS_GRP VpssGrp, int VpssChn)
 			}
 		}
 	}
-	else if (VPSS_CHN_TYPE_RENDER == VpssChn && VPSS_CHN_MODE_USER == p_vpss_cfg->m_en_render_user_mode)
+	else if (VPSS_CHN_TYPE_RENDER == VpssChn && p_vpss_cfg->m_vpss_bind_cnt[3] >= 1)
 	{
 // 		HI_MPI_VPSS_GetChnMode(VpssGrp, VpssChn, &pstVpssMode);
 // 		pstVpssMode.u32Width = p_chn_cfg->m_minor2_venc_width;

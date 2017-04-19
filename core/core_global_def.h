@@ -133,6 +133,8 @@ typedef enum _vo_dev_id_e
 #define _720P_WIDTH              1280
 #define _720P_HEIGHT             720
 
+#define VO_FPS_ACCEL (2)
+
 #define VIR_VO_DEV_MAX			4
 #define VI_CHN_START	3
 #define COMPOUND_SUB_CHN_MAX     6
@@ -207,6 +209,22 @@ typedef enum _pixel_fmt_type_e
 	PIXEL_FMT_TYPE_YUV422 = 0,
 	PIXEL_FMT_TYPE_YUV420 = 1,
 }pixel_fmt_type_t;
+
+typedef enum _vpss_chn_type_e
+{
+	VPSS_CHN_TYPE_MAJOR = 0,
+	VPSS_CHN_TYPE_MINOR,
+	VPSS_CHN_TYPE_MINOR2,
+	VPSS_CHN_TYPE_RENDER,
+}vpss_chn_type_e;
+
+typedef enum _channel_type_e
+{
+	CHANNEL_TYPE_LOCAL_CHANNEL = 0,
+	CHANNEL_TYPE_FILE_CHANNEL,
+	CHANNEL_TYPE_REMOTE_CHANNEL,
+	CHANNEL_TYPE_NULL,
+}channel_type_e;
 
 #ifdef __cplusplus
 }
