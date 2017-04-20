@@ -584,13 +584,184 @@ int av_set_compound_vo_rect(compound_chn_t compound_chn, compound_cfg_t *pset_co
 	return AV_OK;
 }
 
-int av_start_compound_vo_chn(compound_chn_t compound_chn, compound_cfg_t *compound_cfg)
+int av_start_compound_vo_chn(compound_chn_t compound_chn, compound_cfg_t *pset_compound_cfg)
 {
-	if (compound_chn < 0 || compound_chn > COMPOUND_CHN_EFF || !compound_cfg)
+	if (compound_chn < 0 || compound_chn > COMPOUND_CHN_EFF || !pset_compound_cfg)
 	{
 		return AV_ERR_INVALID_PARAM;
 	}
+	int i = 0;
+	compound_cfg_t *p_compound_cfg = &g_av_platform_ctx.m_cfg.m_compound_cfg[compound_chn];
+	int chn_cnt = g_av_platform_ctx.m_vichn_cnt + g_av_platform_ctx.m_filechn_cnt + g_av_platform_ctx.m_remotechn_cnt + VI_CHN_START;
+	channel_data_t *p_chn_data;
+	channel_cfg_t *p_chn_cfg;
+	VO_CHN_ATTR_S stVoChnAttr;
+	MPP_CHN_S stSrcChn;
+	MPP_CHN_S stDestChn;
+	HI_S32 s32Ret;
+	VO_DEV VoDev;
+	VO_LAYER VoLayer;
+	int vpss_chn;
 
+	av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, p_compound_cfg->m_vo_dev_cfg.m_dev_id);
+	if (p_compound_cfg->m_count != pset_compound_cfg->m_count)
+	{
+		DBG_PRT("compound sub is exception\n");
+	}
+	
+	for (i = 0; i < pset_compound_cfg->m_count; i++)
+	{
+		if (p_compound_cfg->m_chn[i] != pset_compound_cfg->m_chn[i])//_»»Ô´
+		{
+			stDestChn.enModId = HI_ID_VOU;
+			stDestChn.s32DevId = VoDev;
+			stDestChn.s32ChnId = i;
+			//unbind vpss an vo
+			if (p_compound_cfg->m_chn[i] > 0 && p_compound_cfg->m_chn[i] < chn_cnt)
+			{
+				p_chn_data = g_av_platform_ctx.m_all_channel_ptr[p_compound_cfg->m_chn[i]];
+				s32Ret = HI_MPI_SYS_GetBindbyDest(&stDestChn, &stSrcChn);
+				if(HI_SUCCESS != s32Ret)
+				{
+					DBG_PRT("[%d]HI_MPI_SYS_GetBindbyDest failed with %d\n", compound_chn, s32Ret);
+				}
+				if(CHANNEL_TYPE_LOCAL_CHANNEL == p_chn_data->m_channel_type)
+				{
+					if (HI_ID_VPSS == stSrcChn.enModId)
+					{
+						vpss_chn = stSrcChn.s32ChnId;
+						p_chn_data->m_cfg.m_vpss_cfg.m_vpss_bind_cnt[vpss_chn]--;
+						if (0 == p_chn_data->m_cfg.m_vpss_cfg.m_vpss_bind_cnt[vpss_chn])
+						{
+							av_cap_set_vpss_mode(p_compound_cfg->m_chn[i], p_chn_data->m_cfg.m_vpss_cfg.m_group_number, vpss_chn, VPSS_CHN_MODE_AUTO);
+						}
+					}
+					else
+					{
+						DBG_PRT("stSrcChn enModId is %d\n",stSrcChn.enModId);
+					}
+					
+				}
+				else if (CHANNEL_TYPE_LOCAL_CHANNEL == p_chn_data->m_channel_type)
+				{
+
+				}
+				else if (CHANNEL_TYPE_REMOTE_CHANNEL == p_chn_data->m_channel_type)
+				{
+
+				}
+				else
+				{
+					DBG_PRT("channel type is excption\n");
+				}
+				s32Ret = HI_MPI_SYS_UnBind(&stSrcChn, &stDestChn);
+				if (HI_SUCCESS != s32Ret)
+				{
+					DBG_PRT("HI_MPI_SYS_UnBind is failed with %d", s32Ret);
+				}	
+			}
+			//bind vpss and vo
+			if (pset_compound_cfg->m_chn[i] < 0 || pset_compound_cfg->m_chn[i] >= chn_cnt)
+			{
+				DBG_PRT("chn [%d] is invalid\n", pset_compound_cfg->m_chn[i]);
+				p_compound_cfg->m_chn[i] = pset_compound_cfg->m_chn[i];
+				continue;
+			}
+			else
+			{
+				p_chn_data = g_av_platform_ctx.m_all_channel_ptr[pset_compound_cfg->m_chn[i]];
+				p_compound_cfg->m_chn[i] = pset_compound_cfg->m_chn[i];
+				if (p_chn_data->m_has_vodeo && (SHOW_MODE_SCALE == pset_compound_cfg->m_show_mode))
+				{
+					double scale;
+					double scale_f = (double)pset_compound_cfg->m_rect[i].m_width/(double)pset_compound_cfg->m_rect[i].m_height;
+					double scale_s = (double)p_chn_data->m_raw_width / (double)p_chn_data->m_raw_height;
+					if ( scale_s > scale_f )
+					{
+						scale = (double)p_chn_data->m_raw_width / (double)pset_compound_cfg->m_rect[i].m_width;
+						stVoChnAttr.stRect.u32Width = pset_compound_cfg->m_rect[i].m_width & 0xFFFFFFFE;
+						stVoChnAttr.stRect.u32Height = ((unsigned int)((double)p_chn_data->m_raw_height/scale)) & 0xFFFFFFFE;
+						stVoChnAttr.stRect.s32X = pset_compound_cfg->m_rect[i].m_x & 0xFFFFFFFE;
+						stVoChnAttr.stRect.s32Y = (pset_compound_cfg->m_rect[i].m_y + (pset_compound_cfg->m_rect[i].m_height-stVoChnAttr.stRect.u32Height)/2) & 0xFFFFFFFE;
+					}
+					else
+					{
+						scale = (double)p_chn_data->m_raw_height / (double)pset_compound_cfg->m_rect[i].m_height;
+						stVoChnAttr.stRect.u32Width = ((unsigned int)((double)p_chn_data->m_raw_width/scale)) & 0xFFFFFFFE;
+						stVoChnAttr.stRect.u32Height = pset_compound_cfg->m_rect[i].m_height & 0xFFFFFFFE;
+						stVoChnAttr.stRect.s32X = (pset_compound_cfg->m_rect[i].m_x + (pset_compound_cfg->m_rect[i].m_width-stVoChnAttr.stRect.u32Width)/2) & 0xFFFFFFFE;
+						stVoChnAttr.stRect.s32Y = pset_compound_cfg->m_rect[i].m_y & 0xFFFFFFFE;
+					}
+				}
+				else
+				{
+					stVoChnAttr.stRect.u32Width = pset_compound_cfg->m_rect[i].m_width & 0xFFFFFFFE;
+					stVoChnAttr.stRect.u32Height = pset_compound_cfg->m_rect[i].m_height & 0xFFFFFFFE;
+					stVoChnAttr.stRect.s32X = pset_compound_cfg->m_rect[i].m_x & 0xFFFFFFFE;
+					stVoChnAttr.stRect.s32Y = pset_compound_cfg->m_rect[i].m_y & 0xFFFFFFFE;
+				}	
+				s32Ret = HI_MPI_VO_SetChnAttr(VoLayer, i, &stVoChnAttr);
+				if (HI_SUCCESS != s32Ret)
+				{
+					DBG_PRT("vochn[%d] H:%d\tW:%d\tx:%d\ty:%d\n",i,stVoChnAttr.stRect.u32Width, stVoChnAttr.stRect.u32Height, stVoChnAttr.stRect.s32X, stVoChnAttr.stRect.s32Y);
+					DBG_PRT("vochn[%d] HI_MPI_VO_SetChnAttr is failed with %d", s32Ret, i);
+				}
+				s32Ret = HI_MPI_VO_EnableChn (VoLayer, i);
+				if (HI_SUCCESS != s32Ret)
+				{
+					DBG_PRT("VoLayer [%d] vochn[%d] H:%d\tW:%d\tx:%d\ty:%d\n",VoLayer,i, stVoChnAttr.stRect.u32Width, stVoChnAttr.stRect.u32Height, stVoChnAttr.stRect.s32X, stVoChnAttr.stRect.s32Y);
+				}
+				if(CHANNEL_TYPE_LOCAL_CHANNEL == p_chn_data->m_channel_type)
+				{
+					s32Ret = HI_MPI_VO_SetChnFrameRate(VoLayer, i, p_chn_data->m_raw_fps);
+					if (HI_SUCCESS != s32Ret)
+					{
+						DBG_PRT("VoLayer [%d] vochn[%d] HI_MPI_VO_SetChnFrameRate is failed with %d\n\n",VoLayer,i, s32Ret);
+					}
+					vpss_chn = av_get_com_vpsschn(pset_compound_cfg->m_chn[i], pset_compound_cfg->m_rect[i].m_width, p_compound_cfg->m_rect[i].m_height);
+					if (vpss_chn < 0)
+					{
+						DBG_PRT("[%d] av_get_com_vpsschn is failed width[%d] heighr[%d]\n",pset_compound_cfg->m_rect[i].m_width, p_compound_cfg->m_rect[i].m_height);
+					}
+					p_chn_data->m_cfg.m_vpss_cfg.m_vpss_bind_cnt[vpss_chn]++;
+					if (1 == p_chn_data->m_cfg.m_vpss_cfg.m_vpss_bind_cnt[vpss_chn])
+					{
+						av_cap_set_vpss_mode(pset_compound_cfg->m_chn[i], pset_compound_cfg->m_vpss_cfg.m_group_number,vpss_chn, VPSS_CHN_MODE_USER);
+					}
+					stSrcChn.enModId = HI_ID_VPSS;
+					stSrcChn.s32DevId = pset_compound_cfg->m_vpss_cfg.m_group_number;
+					stSrcChn.s32ChnId = vpss_chn;
+				}
+				else if (CHANNEL_TYPE_LOCAL_CHANNEL == p_chn_data->m_channel_type)
+				{
+
+				}
+				else if (CHANNEL_TYPE_REMOTE_CHANNEL == p_chn_data->m_channel_type)
+				{
+
+				}
+				else
+				{
+					DBG_PRT("channel type is excption\n");
+				}
+				if (!p_chn_data->m_has_vodeo)
+				{
+					usleep(50 * 1000);
+				}
+				s32Ret = HI_MPI_VO_ClearChnBuffer(VoLayer, i, HI_TRUE);
+				if (HI_SUCCESS != s32Ret)
+				{
+					DBG_PRT("VoLayer [%d] vochn[%d] HI_MPI_VO_ClearChnBuffer is failed with %d\n",VoLayer,i, s32Ret);
+				}
+				s32Ret = HI_MPI_SYS_Bind(&stSrcChn, &stDestChn);
+			}
+		}
+		else
+		{
+			DBG_PRT("src chn == dst chn\n");
+		}
+	}
+	
 	return AV_OK;
 }
 

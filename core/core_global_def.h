@@ -226,6 +226,12 @@ typedef enum _channel_type_e
 	CHANNEL_TYPE_NULL,
 }channel_type_e;
 
+typedef enum _channel_status_e
+{
+	CHANNEL_STATUS_STOP = 0,
+	CHANNEL_STATUS_START,
+}channel_status_e;
+
 #ifdef __cplusplus
 }
 #endif

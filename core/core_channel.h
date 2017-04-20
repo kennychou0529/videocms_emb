@@ -133,7 +133,10 @@ typedef struct _channel_cfg_s
 
 typedef struct _channel_data_s
 {
-	channel_type_e m_channel_type;
+	channel_type_e m_channel_type;			//_通道类型
+	channel_status_e m_channel_stat;		//_通道状态
+	char m_has_audio;						//_是否有视频
+	char m_has_vodeo;						//_是否有音频
 	//_输入video信息
 	int m_source_fps;
 	int m_source_width;
