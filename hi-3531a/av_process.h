@@ -101,7 +101,7 @@ int av_startup();
 int  av_shutdown();
 int av_save_cfg();
 int av_set_compound_vo_rect(compound_chn_t compound_chn, compound_cfg_t *pset_compound_cfg);
-int av_start_compound_vo_chn(compound_chn_t compound_chn, compound_cfg_t *pset_compound_cfg);
+int av_set_compound_vo_chn(compound_chn_t compound_chn, compound_cfg_t *pset_compound_cfg);
 
 extern av_platform_ctx_t g_av_platform_ctx;
 

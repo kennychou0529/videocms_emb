@@ -550,10 +550,6 @@ int av_set_compound_vo_rect(compound_chn_t compound_chn, compound_cfg_t *pset_co
 						else if(stSrcChn.enModId == HI_ID_VIU)
 						{
 						}
-						else
-						{
-							DBG_PRT("[%d]====== fatal ===\n",compound_chn);
-						}
 					}
 					else if(p_chn_data->m_channel_type == CHANNEL_TYPE_FILE_CHANNEL)
 					{
@@ -584,7 +580,7 @@ int av_set_compound_vo_rect(compound_chn_t compound_chn, compound_cfg_t *pset_co
 	return AV_OK;
 }
 
-int av_start_compound_vo_chn(compound_chn_t compound_chn, compound_cfg_t *pset_compound_cfg)
+int av_set_compound_vo_chn(compound_chn_t compound_chn, compound_cfg_t *pset_compound_cfg)
 {
 	if (compound_chn < 0 || compound_chn > COMPOUND_CHN_EFF || !pset_compound_cfg)
 	{
@@ -762,6 +758,134 @@ int av_start_compound_vo_chn(compound_chn_t compound_chn, compound_cfg_t *pset_c
 		}
 	}
 	
+	return AV_OK;
+}
+
+int av_start_compound_vo_chn(compound_chn_t compound_chn)
+{
+	if (compound_chn < 0 || compound_chn > COMPOUND_CHN_EFF)
+	{
+		return AV_ERR_INVALID_PARAM;
+	}
+	
+	int i = 0;
+	int chn_cnt = g_av_platform_ctx.m_vichn_cnt + g_av_platform_ctx.m_filechn_cnt + g_av_platform_ctx.m_remotechn_cnt + VI_CHN_START;
+	channel_data_t *p_chn_data;
+	channel_cfg_t *p_chn_cfg;
+	vo_chn_cfg_t vo_chn_cfg;
+	VO_CHN_ATTR_S stVoChnAttr;
+	MPP_CHN_S stSrcChn;
+	MPP_CHN_S stDestChn;
+	HI_S32 s32Ret;
+	VO_DEV VoDev;
+	VO_LAYER VoLayer;
+	int err_cnt = 0;
+	compound_cfg_t *p_compound_cfg = &g_av_platform_ctx.m_cfg.m_compound_cfg[compound_chn];
+
+	av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, p_compound_cfg->m_vo_dev_cfg.m_dev_id);
+	stVoChnAttr.u32Priority = 0;
+	stVoChnAttr.bDeflicker = HI_TRUE;
+
+	for (i = 0; i < p_compound_cfg->m_count; i++)
+	{
+		//_源不存在
+		if (p_compound_cfg->m_chn[i] < VI_CHN_START && p_compound_cfg->m_chn[i] >= chn_cnt)
+		{
+			err_cnt++;
+			p_compound_cfg->m_chn[i] = -1;
+			continue;
+		}
+		p_chn_data = g_av_platform_ctx.m_all_channel_ptr[p_compound_cfg->m_chn[i]];
+		//_图像分辨率不合格
+		if (p_chn_data->m_raw_width < 64 || p_chn_data->m_raw_height < 64)
+		{
+			err_cnt++;
+			p_compound_cfg->m_chn[i] = -1;
+			continue;
+		}
+		//_设置vo通道区域属性
+		if (p_chn_data && SHOW_MODE_SCALE == p_compound_cfg->m_show_mode)
+		{
+			double scale;
+			double scale_f = (double)p_compound_cfg->m_rect[i].m_width / (double)p_compound_cfg->m_rect[i].m_height;
+			double scale_s = (double)p_chn_data->m_raw_width / (double)p_chn_data->m_raw_height;
+			if ( scale_s > scale_f )
+			{
+				scale = (double)p_chn_data->m_raw_width / (double)p_compound_cfg->m_rect[i].m_width;
+				stVoChnAttr.stRect.u32Width = p_compound_cfg->m_rect[i].m_width & 0xFFFFFFFE;
+				stVoChnAttr.stRect.u32Height = ((unsigned int)((double)p_chn_data->m_raw_height/scale)) & 0xFFFFFFFE;
+				stVoChnAttr.stRect.s32X = p_compound_cfg->m_rect[i].m_x & 0xFFFFFFFE;
+				stVoChnAttr.stRect.s32Y = (p_compound_cfg->m_rect[i].m_y + (p_compound_cfg->m_rect[i].m_height - stVoChnAttr.stRect.u32Height)/2) & 0xFFFFFFFE;
+			}
+			else
+			{
+				scale = (double)p_chn_data->m_raw_height / (double)p_compound_cfg->m_rect[i].m_height;
+				stVoChnAttr.stRect.u32Width = ((unsigned int)((double)p_compound_cfg->m_rect[i].m_width/scale)) & 0xFFFFFFFE;
+				stVoChnAttr.stRect.u32Height = p_compound_cfg->m_rect[i].m_height & 0xFFFFFFFE;
+				stVoChnAttr.stRect.s32X = (p_compound_cfg->m_rect[i].m_x + (p_compound_cfg->m_rect[i].m_width - stVoChnAttr.stRect.u32Width)/2) & 0xFFFFFFFE;
+				stVoChnAttr.stRect.s32Y = p_compound_cfg->m_rect[i].m_y & 0xFFFFFFFE;
+			}
+		}
+		else
+		{
+			stVoChnAttr.stRect.u32Width = p_compound_cfg->m_rect[i].m_width & 0xFFFFFFFE;
+			stVoChnAttr.stRect.u32Height = p_compound_cfg->m_rect[i].m_height & 0xFFFFFFFE;
+			stVoChnAttr.stRect.s32X = p_compound_cfg->m_rect[i].m_x & 0xFFFFFFFE;
+			stVoChnAttr.stRect.s32Y = p_compound_cfg->m_rect[i].m_y & 0xFFFFFFFE;
+		}
+		if(p_chn_data && CHANNEL_TYPE_LOCAL_CHANNEL == p_chn_data->m_channel_type)
+		{
+			int vpsschn = av_get_com_vpsschn( p_compound_cfg->m_chn[i], p_compound_cfg->m_rect[i].m_width, p_compound_cfg->m_rect[i].m_height);
+			if(vpsschn<0)
+			{
+				DBG_PRT("requested vpsschn[%d] failed with chn=%d, w=%d, h=%d\n", vpsschn, p_compound_cfg->m_rect[i].m_width, p_compound_cfg->m_rect[i].m_height);
+				continue;
+			}
+
+			stSrcChn.enModId	= HI_ID_VPSS;
+			stSrcChn.s32DevId	= p_chn_data->m_cfg.m_vpss_cfg.m_group_number;
+			stSrcChn.s32ChnId	= vpsschn;
+			p_chn_data->m_cfg.m_vpss_cfg.m_vpss_bind_cnt[vpsschn]++;
+			if(1 == p_chn_data->m_cfg.m_vpss_cfg.m_vpss_bind_cnt[vpsschn])
+			{
+				av_cap_set_vpss_mode(p_compound_cfg->m_chn[i], p_chn_data->m_cfg.m_vpss_cfg.m_group_number, vpsschn, VPSS_CHN_MODE_USER);
+			}
+		}
+		else if(CHANNEL_TYPE_FILE_CHANNEL == p_chn_data && p_chn_data->m_channel_type)
+		{
+
+		}
+		else if(CHANNEL_TYPE_REMOTE_CHANNEL == p_chn_data && p_chn_data->m_channel_type)
+		{
+
+		}
+		else
+		{
+			err_cnt++;
+			continue;
+		}
+		vo_chn_cfg.m_chn_id = i;
+		vo_chn_cfg.m_deflicker = stVoChnAttr.bDeflicker;
+		vo_chn_cfg.m_layer_id = stVoChnAttr.u32Priority;
+		vo_chn_cfg.m_x = stVoChnAttr.stRect.s32X;
+		vo_chn_cfg.m_y = stVoChnAttr.stRect.s32Y;
+		vo_chn_cfg.m_width = stVoChnAttr.stRect.u32Width;
+		vo_chn_cfg.m_height = stVoChnAttr.stRect.u32Height;
+		av_start_vo_chn(vo_chn_cfg, VoLayer);
+		stDestChn.enModId	= HI_ID_VOU;
+		stDestChn.s32ChnId	= i;
+		stDestChn.s32DevId	= VoDev;
+		s32Ret = HI_MPI_SYS_Bind(&stSrcChn, &stDestChn);
+		if (s32Ret != HI_SUCCESS)
+		{
+			DBG_PRT("(%d[%d]-%d[%d])HI_MPI_SYS_Bind failed with 0x%08X!\n",stSrcChn.s32DevId,stSrcChn.s32ChnId,stDestChn.s32DevId,stDestChn.s32ChnId,s32Ret);
+			return AV_FALSE;
+		}
+	}
+	if (err_cnt >= p_compound_cfg->m_count)
+	{
+		return AV_FALSE;
+	}
 	return AV_OK;
 }
 
@@ -1023,6 +1147,8 @@ int av_start_vo_chn(vo_chn_cfg_t vo_chn_cfg, VO_LAYER vo_layer)
 {
 	VO_CHN_ATTR_S stChnAttr;
 	VO_CHN VoChn;
+	VO_DEV VoDev = vo_dev;
+	VO_LAYER VoLayer = vo_layer;
 	HI_S32 s32Ret = HI_SUCCESS;
 
 	stChnAttr.stRect.s32X       = ALIGN_BACK(vo_chn_cfg.m_x, 2);
@@ -2166,6 +2292,7 @@ int av_start_vir_vo(av_platform_cfg_t av_platform_cfg)
 	MPP_CHN_S stSrcChn, stDestChn;
 	vo_chn_cfg_t vo_chn_cfg;
 	int i = 0;
+	HI_S32 s32Ret = HI_SUCCESS;
 	compound_cfg_t *p_compound_cfg;
 
 	for (i = 0; i < VIR_VO_DEV_MAX;i++)
@@ -2184,6 +2311,7 @@ int av_start_vir_vo(av_platform_cfg_t av_platform_cfg)
 		vo_chn_cfg.m_width = 1920;
 		vo_chn_cfg.m_height = 1080;
 		av_start_vo_chn(vo_chn_cfg, VoLayer);
+		av_start_compound_vo_chn(i);
 		//===========================================
 		if (-1 == p_compound_cfg->m_vpss_cfg.m_group_number)
 		{
@@ -2221,6 +2349,11 @@ int av_start_vir_vo(av_platform_cfg_t av_platform_cfg)
 		stDestChn.s32ChnId  = p_compound_cfg->m_vpss_cfg.m_group_number;
 		stDestChn.s32DevId  = VPSS_CHN_TYPE_RENDER;
 		HI_MPI_SYS_Bind(&stSrcChn, &stDestChn);
+		if (s32Ret != HI_SUCCESS)
+		{
+			DBG_PRT("[%d]HI_MPI_SYS_Bind VOU(%d[%d]) >> VPSS(%d[%d]) failed with %08X!\n", i, stSrcChn.s32DevId, stSrcChn.s32ChnId, stDestChn.s32DevId, stDestChn.s32ChnId, s32Ret);
+			return HI_FAILURE;
+		}
 	}
 
 	return AV_OK;

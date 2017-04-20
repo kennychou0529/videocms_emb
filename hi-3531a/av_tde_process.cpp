@@ -67,13 +67,13 @@ int av_tde_shutdown()
 	return AV_OK;
 }
 
-int av_start_effect(compound_chn_t compound_chn)
+int av_start_compound_effect(compound_chn_t compound_chn)
 {
 
 	return AV_OK;
 }
 
-int av_stop_effect(compound_chn_t compound_chn)
+int av_stop_compound_effect(compound_chn_t compound_chn)
 {
 
 	return AV_OK;

@@ -182,15 +182,15 @@ int av_handler_set_com_chn(compound_chn_t compound_chn, int index, int chn)
 	
 	memcpy(&tmp_compound_cfg, p_compound_cfg, sizeof(tmp_compound_cfg));
 	tmp_compound_cfg.m_chn[index] = chn;
-	av_stop_effect(compound_chn);
+	av_stop_compound_effect(compound_chn);
 	//_设备资源有限，所以只有DIVISON_MODE_4以下的模式才支持特效
 	if (p_compound_cfg->m_division_mode < DIVISON_MODE_4 && g_tde_ctx.m_effect_data->m_mode > EFFECT_MODE_NONE)
 	{
-		av_start_effect(compound_chn);
+		av_start_compound_effect(compound_chn);
 	}
 	else
 	{
-		av_start_compound_vo_chn(compound_chn, &tmp_compound_cfg);
+		av_set_compound_vo_chn(compound_chn, &tmp_compound_cfg);
 	}
 	av_save_cfg();
 

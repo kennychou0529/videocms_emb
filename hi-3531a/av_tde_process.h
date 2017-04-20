@@ -54,8 +54,8 @@ typedef struct _tde_ctx_s
 
 int av_tde_startup();
 int av_tde_shutdown();
-int av_start_effect(compound_chn_t compound_chn);
-int av_stop_effect(compound_chn_t compound_chn);
+int av_start_compound_effect(compound_chn_t compound_chn);
+int av_stop_compound_effect(compound_chn_t compound_chn);
 
 extern tde_ctx_t g_tde_ctx;
 
