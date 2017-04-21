@@ -2580,7 +2580,7 @@ int av_startup()
 	core_channel_local_setup();
 	for(i = VI_CHN_START; i < g_av_platform_ctx.m_vichn_cnt; i++)
 	{
-		memcpy(&vi_cfg, &g_av_platform_ctx.m_local_channel_ptr[i], sizeof(vi_cfg));
+		memcpy(&vi_cfg, &g_av_platform_ctx.m_local_channel_ptr[i].m_cfg.m_vi_cfg, sizeof(vi_cfg));
 		av_start_vi(vi_cfg);
 	}
 	vir_and_vi_chn_cnt = VI_CHN_START + g_av_platform_ctx.m_vichn_cnt;

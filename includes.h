@@ -53,8 +53,12 @@ extern "C"
 #include "hi-3531a/av_process.h"
 #include "hi-3531a/av_tde_process.h"
 #include "core/core_manager.h"
-#include "thirtyparty/cjson/cJSON.h"
 #include "core/core_global_def.h"
+#include "core/core_platform.h"
+#include "core/core_tools.h"
+#include "core/core_parse_file.h"
+#include "thirtyparty/cjson/cJSON.h"
+#include "thirtyparty/strfunc/strfunc.h"
 
 #ifdef __cplusplus
 }

@@ -6,6 +6,8 @@ extern "C"
 {
 #endif
 
+#define UPDATE_FILE	"/mnt/mtd/update.ini"
+
 #define RETURN_OK 0
 #define RETURN_ERR_FALSE -1
 #define RETURN_ERR_INVALID_PARAM -2

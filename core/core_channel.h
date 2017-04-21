@@ -126,6 +126,7 @@ typedef struct _channel_cfg_s
 	int m_minor2_venc_width;
 	int m_minor2_venc_height;
 	int m_pix_format;
+	char m_vpss_had_init;					//_vpss参数已经初始化
 	char vi_json_id;						//_vi参数在json数组的中的元素id
 	vi_cfg_t m_vi_cfg;
 	vpss_cfg_t m_vpss_cfg;

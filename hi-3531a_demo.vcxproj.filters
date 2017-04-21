@@ -36,6 +36,15 @@
     <ClCompile Include="thirtyparty\strfunc\strfunc.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="core\core_platform.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="core\core_parse_file.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="core\core_tools.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hi-3531a\av_process.h">
@@ -63,6 +72,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="thirtyparty\strfunc\strfunc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="core\core_platform.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="core\core_parse_file.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="core\core_tools.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
