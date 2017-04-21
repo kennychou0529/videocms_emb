@@ -41,7 +41,7 @@ typedef enum _vi_chn_set_e
 	VI_CHN_SET_NORMAL = 0, /* mirror, filp close */ 
 	VI_CHN_SET_MIRROR = 1,      /* open MIRROR */   
 	VI_CHN_SET_FILP  = 2      /* open filp */
-}vi_chn_set_t;
+}vi_chn_set_e;
 
 typedef enum _vpss_chn_mode_e
 {
@@ -79,7 +79,7 @@ typedef struct _vi_cfg_s
 	int m_videv;
 	int m_vichn;
 	int m_colorspace;
-	vi_chn_set_t m_mirrorflip;
+	vi_chn_set_e m_mirrorflip;
 	char m_interlaced;
 	int m_src_fps;
 	int m_dst_fps;
@@ -126,6 +126,7 @@ typedef struct _channel_cfg_s
 	int m_minor2_venc_width;
 	int m_minor2_venc_height;
 	int m_pix_format;
+	char vi_json_id;						//_vi参数在json数组的中的元素id
 	vi_cfg_t m_vi_cfg;
 	vpss_cfg_t m_vpss_cfg;
 	vo_chn_cfg_t m_vo_cfg;

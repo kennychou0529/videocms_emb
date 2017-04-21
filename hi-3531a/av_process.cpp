@@ -2311,7 +2311,7 @@ int av_start_vir_vo(av_platform_cfg_t av_platform_cfg)
 		vo_chn_cfg.m_width = 1920;
 		vo_chn_cfg.m_height = 1080;
 		av_start_vo_chn(vo_chn_cfg, VoLayer);
-		av_start_compound_vo_chn(i);
+		av_start_compound_vo_chn((compound_chn_t)i);
 		//===========================================
 		if (-1 == p_compound_cfg->m_vpss_cfg.m_group_number)
 		{
@@ -2563,6 +2563,7 @@ int av_startup()
 	av_start_hdmi();
 	av_start_ui_out(g_av_platform_ctx.m_cfg);
 	av_start_live_out(g_av_platform_ctx.m_cfg);
+	av_start_vir_vo(g_av_platform_ctx.m_cfg);
 	//_申请通道参数空间
 	g_av_platform_ctx.m_local_channel_ptr = (channel_data_t *)calloc(1, VI_CHN_START + g_av_platform_ctx.m_vichn_cnt);
 	for (i = 0;i < g_av_platform_ctx.m_vichn_cnt; i++)

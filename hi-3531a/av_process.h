@@ -88,7 +88,7 @@ typedef struct _av_platform_ctx_s
 	int m_remotechn_cnt;					//_remote通道数
 	pthread_mutex_t m_mtx;					//_互斥锁
 	av_platform_cfg_t m_cfg;				//_av platform cfg
-	channel_data_t *m_all_channel_ptr[256];		//_所有通道头指针
+	channel_data_t *m_all_channel_ptr[256];	//_所有通道头指针
 	channel_data_t *m_local_channel_ptr;	//_本地通道头指针
 	int m_local_chn_index_offset;			//_本地通道在所有通道头指针的偏移位置
 	channel_data_t *m_file_channel_ptr;		//_文件通道头指针
