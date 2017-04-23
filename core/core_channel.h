@@ -57,7 +57,7 @@ typedef struct _CHN_RECT
 	int m_height;
 }CHN_RECT;
 
-typedef struct _vo_chn_cfg_s
+typedef struct _vo_chn_info_s
 {
 	int m_chn_id;							//_chn id
 	char m_layer_id;						//_显示层次
@@ -66,7 +66,7 @@ typedef struct _vo_chn_cfg_s
 	int m_width;							//_区域宽
 	int m_height;							//_区域高
 	char m_deflicker;						//_抗闪烁使能
-}vo_chn_cfg_t, *pvo_chn_cfg_t;
+}vo_chn_info_t, *pvo_chn_info_t;
 
 typedef struct _vi_cfg_s
 {
@@ -126,11 +126,11 @@ typedef struct _channel_cfg_s
 	int m_minor2_venc_width;
 	int m_minor2_venc_height;
 	int m_pix_format;
-	char m_vpss_had_init;					//_vpss参数已经初始化
-	char vi_json_id;						//_vi参数在json数组的中的元素id
+	char m_vpss_had_init;					//_vpss参数已经被初始化，首次是先获取系统参数，然后再在基础上进行修改
+	char m_vi_json_id;						//_vi参数在json数组的中的元素id
+	char m_reset_vi_cfg;					//_0：表示从通道配置文件中加载vi参数 1:表示重新从硬件配置中加载vi参数，方便在不同硬件参数情况下，除vi参数采取默认值外，其他参数还是读取先前用户配置好的参数
 	vi_cfg_t m_vi_cfg;
 	vpss_cfg_t m_vpss_cfg;
-	vo_chn_cfg_t m_vo_cfg;
 }channel_cfg_t, *pchannel_cfg_t;
 
 typedef struct _channel_data_s

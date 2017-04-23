@@ -772,7 +772,7 @@ int av_start_compound_vo_chn(compound_chn_t compound_chn)
 	int chn_cnt = g_av_platform_ctx.m_vichn_cnt + g_av_platform_ctx.m_filechn_cnt + g_av_platform_ctx.m_remotechn_cnt + VI_CHN_START;
 	channel_data_t *p_chn_data;
 	channel_cfg_t *p_chn_cfg;
-	vo_chn_cfg_t vo_chn_cfg;
+	vo_chn_info_t vo_chn_info;
 	VO_CHN_ATTR_S stVoChnAttr;
 	MPP_CHN_S stSrcChn;
 	MPP_CHN_S stDestChn;
@@ -864,14 +864,14 @@ int av_start_compound_vo_chn(compound_chn_t compound_chn)
 			err_cnt++;
 			continue;
 		}
-		vo_chn_cfg.m_chn_id = i;
-		vo_chn_cfg.m_deflicker = stVoChnAttr.bDeflicker;
-		vo_chn_cfg.m_layer_id = stVoChnAttr.u32Priority;
-		vo_chn_cfg.m_x = stVoChnAttr.stRect.s32X;
-		vo_chn_cfg.m_y = stVoChnAttr.stRect.s32Y;
-		vo_chn_cfg.m_width = stVoChnAttr.stRect.u32Width;
-		vo_chn_cfg.m_height = stVoChnAttr.stRect.u32Height;
-		av_start_vo_chn(vo_chn_cfg, VoLayer);
+		vo_chn_info.m_chn_id = i;
+		vo_chn_info.m_deflicker = stVoChnAttr.bDeflicker;
+		vo_chn_info.m_layer_id = stVoChnAttr.u32Priority;
+		vo_chn_info.m_x = stVoChnAttr.stRect.s32X;
+		vo_chn_info.m_y = stVoChnAttr.stRect.s32Y;
+		vo_chn_info.m_width = stVoChnAttr.stRect.u32Width;
+		vo_chn_info.m_height = stVoChnAttr.stRect.u32Height;
+		av_start_vo_chn(vo_chn_info, VoLayer);
 		stDestChn.enModId	= HI_ID_VOU;
 		stDestChn.s32ChnId	= i;
 		stDestChn.s32DevId	= VoDev;
@@ -1143,7 +1143,7 @@ int av_stop_vo_dev(VO_DEV vo_dev, VO_LAYER vo_layer)
 	return AV_OK;
 }
 
-int av_start_vo_chn(vo_chn_cfg_t vo_chn_cfg, VO_LAYER vo_layer)
+int av_start_vo_chn(vo_chn_info_t vo_chn_info, VO_LAYER vo_layer)
 {
 	VO_CHN_ATTR_S stChnAttr;
 	VO_CHN VoChn;
@@ -1151,13 +1151,13 @@ int av_start_vo_chn(vo_chn_cfg_t vo_chn_cfg, VO_LAYER vo_layer)
 	VO_LAYER VoLayer = vo_layer;
 	HI_S32 s32Ret = HI_SUCCESS;
 
-	stChnAttr.stRect.s32X       = ALIGN_BACK(vo_chn_cfg.m_x, 2);
-	stChnAttr.stRect.s32Y       = ALIGN_BACK(vo_chn_cfg.m_y, 2);
-	stChnAttr.stRect.u32Width   = ALIGN_BACK(vo_chn_cfg.m_width, 2);
-	stChnAttr.stRect.u32Height  = ALIGN_BACK(vo_chn_cfg.m_height, 2);
-	stChnAttr.u32Priority       = vo_chn_cfg.m_layer_id;
-	stChnAttr.bDeflicker        = vo_chn_cfg.m_deflicker;
-	VoChn = vo_chn_cfg.m_chn_id;
+	stChnAttr.stRect.s32X       = ALIGN_BACK(vo_chn_info.m_x, 2);
+	stChnAttr.stRect.s32Y       = ALIGN_BACK(vo_chn_info.m_y, 2);
+	stChnAttr.stRect.u32Width   = ALIGN_BACK(vo_chn_info.m_width, 2);
+	stChnAttr.stRect.u32Height  = ALIGN_BACK(vo_chn_info.m_height, 2);
+	stChnAttr.u32Priority       = vo_chn_info.m_layer_id;
+	stChnAttr.bDeflicker        = vo_chn_info.m_deflicker;
+	VoChn = vo_chn_info.m_chn_id;
 
 	s32Ret = HI_MPI_VO_SetChnAttr(vo_layer, VoChn, &stChnAttr);
 	if (s32Ret != HI_SUCCESS)
@@ -1176,9 +1176,9 @@ int av_start_vo_chn(vo_chn_cfg_t vo_chn_cfg, VO_LAYER vo_layer)
 	return AV_OK;
 }
 
-int av_stop_vo_chn(vo_chn_cfg_t vo_chn_cfg, VO_LAYER vo_layer)
+int av_stop_vo_chn(vo_chn_info_t vo_chn_info, VO_LAYER vo_layer)
 {
-	VO_CHN VoChn = vo_chn_cfg.m_chn_id;
+	VO_CHN VoChn = vo_chn_info.m_chn_id;
 	HI_S32 s32Ret = HI_SUCCESS;
 
 	s32Ret = HI_MPI_VO_DisableChn(vo_layer, VoChn);
@@ -2226,7 +2226,7 @@ int av_start_live_out(av_platform_cfg_t av_platform_cfg)
 	VO_DEV VoDev;
 	VO_LAYER VoLayer;
 	MPP_CHN_S stSrcChn, stDestChn;
-	vo_chn_cfg_t vo_chn_cfg;
+	vo_chn_info_t vo_chn_info;
 
 	av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, av_platform_cfg.m_vo_cfg_live.m_dev_id);
 
@@ -2235,20 +2235,20 @@ int av_start_live_out(av_platform_cfg_t av_platform_cfg)
 	av_platform_cfg.m_vpss_cfg_live.m_group_number = av_register_vpss_group();
 	DBG_PRT("ui out vpss grp is %d\n", av_platform_cfg.m_vpss_cfg_live.m_group_number);
 	av_start_vpss(SPECIAL_LIVE_CHN, av_platform_cfg.m_vpss_cfg_live.m_group_number);
-	vo_chn_cfg.m_chn_id = 0;
-	vo_chn_cfg.m_deflicker = 0;
-	vo_chn_cfg.m_layer_id = 0;
-	vo_chn_cfg.m_x = 20;
-	vo_chn_cfg.m_y = 20;
-	vo_chn_cfg.m_width = 1920;
-	vo_chn_cfg.m_height = 1080;
-	av_start_vo_chn(vo_chn_cfg, VoLayer);
+	vo_chn_info.m_chn_id = 0;
+	vo_chn_info.m_deflicker = 0;
+	vo_chn_info.m_layer_id = 0;
+	vo_chn_info.m_x = 20;
+	vo_chn_info.m_y = 20;
+	vo_chn_info.m_width = 1920;
+	vo_chn_info.m_height = 1080;
+	av_start_vo_chn(vo_chn_info, VoLayer);
 	stSrcChn.enModId    = HI_ID_VPSS;
 	stSrcChn.s32DevId   = 0;
 	stSrcChn.s32ChnId   = VPSS_CHN_TYPE_RENDER;
 
 	stDestChn.enModId   = HI_ID_VOU;
-	stDestChn.s32ChnId  = vo_chn_cfg.m_chn_id;
+	stDestChn.s32ChnId  = vo_chn_info.m_chn_id;
 	stDestChn.s32DevId  = VoLayer;
 	HI_MPI_SYS_Bind(&stSrcChn, &stDestChn);
 
@@ -2260,27 +2260,27 @@ int av_stop_live_out(av_platform_cfg_t av_platform_cfg)
 	VO_DEV VoDev;
 	VO_LAYER VoLayer;
 	MPP_CHN_S stSrcChn, stDestChn;
-	vo_chn_cfg_t vo_chn_cfg;
+	vo_chn_info_t vo_chn_info;
 
-	vo_chn_cfg.m_chn_id = 0;
-	vo_chn_cfg.m_deflicker = 0;
-	vo_chn_cfg.m_layer_id = 0;
-	vo_chn_cfg.m_x = 20;
-	vo_chn_cfg.m_y = 20;
-	vo_chn_cfg.m_width = 1920;
-	vo_chn_cfg.m_height = 1080;
+	vo_chn_info.m_chn_id = 0;
+	vo_chn_info.m_deflicker = 0;
+	vo_chn_info.m_layer_id = 0;
+	vo_chn_info.m_x = 20;
+	vo_chn_info.m_y = 20;
+	vo_chn_info.m_width = 1920;
+	vo_chn_info.m_height = 1080;
 	av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, av_platform_cfg.m_vo_cfg_live.m_dev_id);
 	stSrcChn.enModId    = HI_ID_VPSS;
 	stSrcChn.s32DevId   = 0;
 	stSrcChn.s32ChnId   = VPSS_CHN_TYPE_RENDER;
 
 	stDestChn.enModId   = HI_ID_VOU;
-	stDestChn.s32ChnId  = vo_chn_cfg.m_chn_id;
+	stDestChn.s32ChnId  = vo_chn_info.m_chn_id;
 	stDestChn.s32DevId  = VoLayer;
 	HI_MPI_SYS_UnBind(stSrcChn, stDestChn);
 
 	av_stop_vpss(av_platform_cfg.m_vpss_cfg_live.m_group_number);
-	av_stop_vo_chn(vo_chn_cfg, VoLayer);
+	av_stop_vo_chn(vo_chn_info, VoLayer);
 	av_stop_vo_dev(VoDev, VoLayer);
 	return AV_OK;
 }
@@ -2290,7 +2290,7 @@ int av_start_vir_vo(av_platform_cfg_t av_platform_cfg)
 	VO_DEV VoDev;
 	VO_LAYER VoLayer;
 	MPP_CHN_S stSrcChn, stDestChn;
-	vo_chn_cfg_t vo_chn_cfg;
+	vo_chn_info_t vo_chn_info;
 	int i = 0;
 	HI_S32 s32Ret = HI_SUCCESS;
 	compound_cfg_t *p_compound_cfg;
@@ -2303,14 +2303,14 @@ int av_start_vir_vo(av_platform_cfg_t av_platform_cfg)
 		if(AV_OK != av_start_vo_dev(p_compound_cfg->m_vo_dev_cfg, VoDev, VoLayer))
 			DBG_PRT("av_start_vir_vo dev %d is failed\n", i);
 		//===========================================
-		vo_chn_cfg.m_chn_id = VO_MAX_CHN_NUM - 1;
-		vo_chn_cfg.m_deflicker = 0;
-		vo_chn_cfg.m_layer_id = 0;
-		vo_chn_cfg.m_x = 0;
-		vo_chn_cfg.m_y = 0;
-		vo_chn_cfg.m_width = 1920;
-		vo_chn_cfg.m_height = 1080;
-		av_start_vo_chn(vo_chn_cfg, VoLayer);
+		vo_chn_info.m_chn_id = VO_MAX_CHN_NUM - 1;
+		vo_chn_info.m_deflicker = 0;
+		vo_chn_info.m_layer_id = 0;
+		vo_chn_info.m_x = 0;
+		vo_chn_info.m_y = 0;
+		vo_chn_info.m_width = 1920;
+		vo_chn_info.m_height = 1080;
+		av_start_vo_chn(vo_chn_info, VoLayer);
 		av_start_compound_vo_chn((compound_chn_t)i);
 		//===========================================
 		if (-1 == p_compound_cfg->m_vpss_cfg.m_group_number)
@@ -2364,30 +2364,30 @@ int av_stop_vir_vo(av_platform_cfg_t av_platform_cfg)
 	VO_DEV VoDev;
 	VO_LAYER VoLayer;
 	MPP_CHN_S stSrcChn, stDestChn;
-	vo_chn_cfg_t vo_chn_cfg;
+	vo_chn_info_t vo_chn_info;
 	int i = 0;
 
 	for (i = 0; i < VIR_VO_DEV_MAX;i++)
 	{
-		vo_chn_cfg.m_chn_id = VO_MAX_CHN_NUM - 1;
-		vo_chn_cfg.m_deflicker = 0;
-		vo_chn_cfg.m_layer_id = 0;
-		vo_chn_cfg.m_x = 0;
-		vo_chn_cfg.m_y = 0;
-		vo_chn_cfg.m_width = 1920;
-		vo_chn_cfg.m_height = 1080;
+		vo_chn_info.m_chn_id = VO_MAX_CHN_NUM - 1;
+		vo_chn_info.m_deflicker = 0;
+		vo_chn_info.m_layer_id = 0;
+		vo_chn_info.m_x = 0;
+		vo_chn_info.m_y = 0;
+		vo_chn_info.m_width = 1920;
+		vo_chn_info.m_height = 1080;
 		av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, av_platform_cfg.m_compound_cfg[i].m_vo_dev_cfg.m_dev_id);
 		stSrcChn.enModId    = HI_ID_VOU;
 		stSrcChn.s32DevId   = VoDev;
 		stSrcChn.s32ChnId   = 0;
 
 		stDestChn.enModId   = HI_ID_VPSS;
-		stDestChn.s32ChnId  = p_compound_cfg->m_vpss_cfg.m_group_number;
+		stDestChn.s32ChnId  = av_platform_cfg.m_compound_cfg[i].m_vpss_cfg.m_group_number;
 		stDestChn.s32DevId  = VPSS_CHN_TYPE_RENDER;
 		HI_MPI_SYS_UnBind(&stSrcChn, &stDestChn);
 
 		av_stop_vpss(av_platform_cfg.m_compound_cfg[i].m_vpss_cfg.m_group_number);
-		av_stop_vo_chn(vo_chn_cfg, VoLayer);
+		av_stop_vo_chn(vo_chn_info, VoLayer);
 		av_stop_vo_dev(VoDev, VoLayer);
 	}
 

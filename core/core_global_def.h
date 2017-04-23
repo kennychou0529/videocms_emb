@@ -7,6 +7,11 @@ extern "C"
 #endif
 
 #define UPDATE_FILE	"/mnt/mtd/update.ini"
+#define PLATFORM_FILE_PATH "/mnt/mtd/platform"
+#define CFG_FILE	"/mnt/mtd/app/config"
+
+#define VI_CHN_INFO "VI_CHN_INFO"
+#define VPSS_INFO "VI_CHN_INFO"
 
 #define RETURN_OK 0
 #define RETURN_ERR_FALSE -1
@@ -134,6 +139,9 @@ typedef enum _vo_dev_id_e
 
 #define _720P_WIDTH              1280
 #define _720P_HEIGHT             720
+
+#define DEFAULT_MAJOR_FPS		 25
+#define DEFAULT_MINOR_FPS		 25
 
 #define VO_FPS_ACCEL (2)
 

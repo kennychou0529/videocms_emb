@@ -13,7 +13,7 @@ int core_tools_write_json_to_file(cJSON *json, FILE *fp)
 	int filesize;
 
 	p_str = cJSON_Print(json);
-	if(p)
+	if(p_str)
 	{
 		filesize = strlen(p_str) + 1;
 		fwrite(p_str, filesize, 1,fp);
@@ -66,6 +66,7 @@ int core_tools_get_platform_json(char *pathname, cJSON **out_json)
 		fclose(fp);
 		return AV_ERR_PARSE_JSON_FAILED;
 	}
+	free(filebuf);
 	fclose(fp);
 	return AV_OK;
 }

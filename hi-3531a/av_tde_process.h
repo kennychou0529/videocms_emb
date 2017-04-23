@@ -10,8 +10,8 @@ extern "C"{
 
 typedef enum _tde_exit_cmd_e
 {
-	TDE_EXIT_CMD_SATRT = 0,
-	TDE_EXIT_CMD__STOP,
+	TDE_EXIT_CMD_START = 0,
+	TDE_EXIT_CMD_STOP,
 }tde_exit_cmd_e;
 
 typedef struct _tde_effect_cfg_s
@@ -27,6 +27,7 @@ typedef struct _tde_effect_cfg_s
 
 typedef struct _tde_effect_data_s
 {
+	int m_vo_id;									//_特效通道id
 	effect_mode_t m_mode;							//_特效模式
 	int m_duration;									//_设置的持续时长秒
 	int m_expired;									//_特效已经持续的时间
@@ -36,6 +37,7 @@ typedef struct _tde_effect_data_s
 	int m_height_max;								//_图像最大高度
 	pixel_fmt_type_t m_pix_fmt;						//_图像像素格式
 	VB_POOL m_pool_handle;							//_缓存池句柄
+	pthread_t m_thread;								//_tde处理线程
 	pthread_mutex_t m_mutex;						//_保护锁
 }tde_effect_data_t, *ptde_effect_data_t;
 
