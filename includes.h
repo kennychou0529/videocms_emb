@@ -41,12 +41,7 @@ extern "C"
 #include "mpi_ao.h"
 #include "mpi_hdmi.h"
 
-#include "tlv320aic31.h"
-#include "tp2823.h"
-
 #include "loadbmp.h"
-
-#include "sample_user_def.h"
 /////////////////////////////////////////////////////////////////////////////
 
 #include "hi-3531a/av_handler.h"
@@ -57,8 +52,8 @@ extern "C"
 #include "core/core_platform.h"
 #include "core/core_tools.h"
 #include "core/core_parse_file.h"
-#include "thirtyparty/cjson/cJSON.h"
-#include "thirtyparty/strfunc/strfunc.h"
+#include "thirdparty/cjson/cJSON.h"
+#include "thirdparty/strfunc/strfunc.h"
 
 #ifdef __cplusplus
 }

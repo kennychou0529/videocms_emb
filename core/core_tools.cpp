@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 int core_tools_write_json_to_file(cJSON *json, FILE *fp)
 {

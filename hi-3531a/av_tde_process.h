@@ -2,7 +2,7 @@
 #define __AV_TDE_PROCESS_H__
 
 #include "../core/core_global_def.h"
-#include "../thirtyparty/pthread_win32/pthread.h"
+//#include "../thirtyparty/pthread_win32/pthread.h"
 
 #ifdef __cplusplus
 extern "C"{

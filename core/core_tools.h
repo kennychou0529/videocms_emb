@@ -1,7 +1,7 @@
 #ifndef __CORE_TOOLS_H__
 #define __CORE_TOOLS_H__
 
-#include "../thirtyparty/cjson/cJSON.h"
+#include "../thirdparty/cjson/cJSON.h"
 #ifdef __cplusplus
 extern "C"
 {

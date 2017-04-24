@@ -1,6 +1,7 @@
 #include "../includes.h"
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 
 tde_ctx_t g_tde_ctx;
 
@@ -16,7 +17,7 @@ void *av_tde_process_thread(void * arg)
 		{
 			if(s32Ret != HI_ERR_VPSS_NOBUF)
 			{
-				DBG_PRT("[%d]HI_MPI_VPSS_UserGetFrame VPSS[%d] failed with %08X!\n", pTDECtx->handle, VpssGrp, s32Ret);
+				DBG_PRT("[%d]HI_MPI_VPSS_UserGetFrame VPSS[%d] failed with %08X!\n", tde_effect_data->m_vo_id, p_compoun_cfg->m_vpss_cfg.m_group_number, s32Ret);
 			}
 		}
 		if (TDE_EXIT_CMD_STOP == g_tde_ctx.m_exit_cmd)
@@ -32,7 +33,7 @@ void *av_tde_process_thread(void * arg)
 		s32Ret = HI_MPI_VPSS_ReleaseChnFrame (p_compoun_cfg->m_vpss_cfg.m_group_number, VPSS_CHN_TYPE_RENDER,  &pstVideoFrame);
 		if (s32Ret != HI_SUCCESS)
 		{
-			DBG_PRT("[%d]HI_MPI_VPSS_UserReleaseFrame VPSS[%d] failed with %08X!\n", pTDECtx->handle, pframe->VpssGrp, s32Ret);
+			DBG_PRT("[%d]HI_MPI_VPSS_UserReleaseFrame VPSS[%d] failed with %08X!\n",tde_effect_data->m_vo_id, p_compoun_cfg->m_vpss_cfg.m_group_number, s32Ret);
 		}
 	}
 	return NULL;

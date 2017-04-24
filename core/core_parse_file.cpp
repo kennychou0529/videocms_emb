@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 int PareseFile_Read_ini_int(const char *FilePath, const char *Node ,const char *Name, int *Dest)
 {

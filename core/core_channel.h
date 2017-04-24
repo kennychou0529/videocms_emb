@@ -6,6 +6,8 @@ extern "C"
 {
 #endif
 
+#include "core_global_def.h"
+
 #define	OUT_DEV_TYPE_VGA  1 << 0
 #define	OUT_DEV_TYPE_HDMI  1 << 1
 #define	OUT_DEV_TYPE_BT1120  1 << 2
@@ -28,14 +30,6 @@ typedef enum _frame_rate_type_e
 	FRAME_RATE_TYPE_25 = 3,
 }frame_rate_type_t;
 
-typedef enum _vpss_chn_type_e
-{
-	VPSS_CHN_TYPE_MAJOR = 0,
-	VPSS_CHN_TYPE_MINOR = 1,
-	VPSS_CHN_TYPE_MINOR2 = 2,
-	VPSS_CHN_TYPE_RENDER = 3,
-}vpss_chn_type_t;
-
 typedef enum _vi_chn_set_e
 {
 	VI_CHN_SET_NORMAL = 0, /* mirror, filp close */ 
@@ -43,11 +37,11 @@ typedef enum _vi_chn_set_e
 	VI_CHN_SET_FILP  = 2      /* open filp */
 }vi_chn_set_e;
 
-typedef enum _vpss_chn_mode_e
-{
-	VPSS_CHN_MODE_AUTO = 0,
-	VPSS_CHN_MODE_USER = 1,
-}vpss_chn_mode_t;
+// typedef enum _vpss_chn_mode_e
+// {
+// 	VPSS_CHN_MODE_AUTO = 0,
+// 	VPSS_CHN_MODE_USER = 1,
+// }vpss_chn_mode_t;
 
 typedef struct _CHN_RECT
 {
@@ -172,7 +166,7 @@ int core_channel_local_desetup();
 int core_channel_uninit_cfg();
 int core_channel_init_cfg();
 int core_channel_load_cfg();
-int core_channel_save_cfg()
+int core_channel_save_cfg();
 
 #ifdef __cplusplus
 }

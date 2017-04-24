@@ -32,7 +32,7 @@ extern "C"
 {
 #endif
 
-#include "../thirtyparty/pthread_win32/pthread.h"
+//#include "../thirtyparty/pthread_win32/pthread.h"
 #include "../core/core_channel.h"
 #include "../core/core_global_def.h"
 

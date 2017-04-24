@@ -84,8 +84,9 @@
     <ClCompile Include="hi-3531a\av_handler.cpp" />
     <ClCompile Include="hi-3531a\av_process.cpp" />
     <ClCompile Include="hi-3531a\av_tde_process.cpp" />
-    <ClCompile Include="thirtyparty\cjson\cJSON.c" />
-    <ClCompile Include="thirtyparty\strfunc\strfunc.c" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="thirdparty\cjson\cJSON.c" />
+    <ClCompile Include="thirdparty\strfunc\strfunc.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="core\core_channel.h" />
@@ -98,8 +99,8 @@
     <ClInclude Include="hi-3531a\av_process.h" />
     <ClInclude Include="hi-3531a\av_tde_process.h" />
     <ClInclude Include="includes.h" />
-    <ClInclude Include="thirtyparty\cjson\cJSON.h" />
-    <ClInclude Include="thirtyparty\strfunc\strfunc.h" />
+    <ClInclude Include="thirdparty\cjson\cJSON.h" />
+    <ClInclude Include="thirdparty\strfunc\strfunc.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

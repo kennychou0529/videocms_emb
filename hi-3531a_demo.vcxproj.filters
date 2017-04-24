@@ -21,9 +21,6 @@
     <ClCompile Include="core\core_manager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="thirtyparty\cjson\cJSON.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="core\core_channel.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -31,9 +28,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="hi-3531a\av_tde_process.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="thirtyparty\strfunc\strfunc.c">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="core\core_platform.cpp">
@@ -45,6 +39,15 @@
     <ClCompile Include="core\core_tools.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="thirdparty\cjson\cJSON.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\strfunc\strfunc.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="hi-3531a\av_process.h">
@@ -54,9 +57,6 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="includes.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="thirtyparty\cjson\cJSON.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="core\core_global_def.h">
@@ -71,9 +71,6 @@
     <ClInclude Include="hi-3531a\av_tde_process.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="thirtyparty\strfunc\strfunc.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="core\core_platform.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -81,6 +78,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="core\core_tools.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\cjson\cJSON.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\strfunc\strfunc.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
