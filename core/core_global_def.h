@@ -11,7 +11,7 @@ extern "C"
 #define CFG_FILE	"/mnt/mtd/app/config"
 
 #define VI_CHN_INFO "VI_CHN_INFO"
-#define VPSS_INFO "VI_CHN_INFO"
+#define VPSS_INFO "VPSS_CHN_INFO"
 
 #define RETURN_OK 0
 #define RETURN_ERR_FALSE -1
@@ -20,6 +20,7 @@ extern "C"
 #define RETURN_ERR_OPEN_FILE_FAILED -4
 #define RETURN_ERR_FILE_EMPTY -5
 
+#define __EN_DBG_
 #ifdef __EN_DBG_
 #define DBG_PRT printf 
 #else

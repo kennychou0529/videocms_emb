@@ -819,7 +819,7 @@ int core_channel_load_cfg(int channel_index)
 		{
 			DBG_PRT("PareseFile_Read_ini_int is failed with %d\n", ret);
 		}
-		snprintf(str, sizeof(str), "%s/%d", PLATFORM_FILE_PATH, hardware_id);
+		snprintf(str, sizeof(str), "%s/%d.json", PLATFORM_FILE_PATH, hardware_id);
 		ret = core_tools_get_platform_json(str, &hardware_json);
 		if (AV_OK != ret)
 		{
@@ -883,7 +883,7 @@ int core_channel_init_cfg(int channel_index)
 	{
 		DBG_PRT("PareseFile_Read_ini_int is failed with %d\n", ret);
 	}
-	snprintf(str, sizeof(str), "%s/%d", PLATFORM_FILE_PATH, hardware_id);
+	snprintf(str, sizeof(str), "%s/%d.json", PLATFORM_FILE_PATH, hardware_id);
 	ret = core_tools_get_platform_json(str, &hardware_json);
 	if (AV_OK != ret)
 	{
@@ -904,7 +904,16 @@ int core_channel_uninit_cfg()
 
 int core_channel_local_setup()
 {
-	
+	int i, ret;
+	int chn_cnt = VI_CHN_START + g_av_platform_ctx.m_vichn_cnt;
+	for (i = 0; i < chn_cnt;i++)
+	{
+		if(AV_OK != (ret = core_channel_load_cfg(i)))
+		{
+			DBG_PRT("core_channel_load_cfg failed with %d\n", ret);
+			core_channel_init_cfg(i);
+		}
+	}
 	
 	return RETURN_OK;
 }

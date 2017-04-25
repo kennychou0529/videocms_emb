@@ -2,6 +2,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <stdio.h>
 
 tde_ctx_t g_tde_ctx;
 

@@ -4,7 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define AV_CFG_JSON_PATH  "/mnt/mtd/app/config"
+#define AV_CFG_JSON_PATH  "/mnt/mtd/app/config/avcfg.json"
 
 typedef struct _av_vpss_group_info_s
 {
@@ -2256,7 +2256,7 @@ int av_start_live_out(av_platform_cfg_t av_platform_cfg)
 	if(AV_OK != av_start_vo_dev(av_platform_cfg.m_vo_cfg_live, VoDev, VoLayer))
 		DBG_PRT("av_start_vo_dev is failed\n");
 	av_platform_cfg.m_vpss_cfg_live.m_group_number = av_register_vpss_group();
-	DBG_PRT("ui out vpss grp is %d\n", av_platform_cfg.m_vpss_cfg_live.m_group_number);
+	DBG_PRT("live out vpss grp is %d\n", av_platform_cfg.m_vpss_cfg_live.m_group_number);
 	av_start_vpss(SPECIAL_LIVE_CHN, av_platform_cfg.m_vpss_cfg_live.m_group_number);
 	vo_chn_info.m_chn_id = 0;
 	vo_chn_info.m_deflicker = 0;
@@ -2336,14 +2336,14 @@ int av_start_vir_vo(av_platform_cfg_t av_platform_cfg)
 		av_start_vo_chn(vo_chn_info, VoLayer);
 		av_start_compound_vo_chn((compound_chn_t)i);
 		//===========================================
-		if (-1 == p_compound_cfg->m_vpss_cfg.m_group_number)
+		//if (-1 == p_compound_cfg->m_vpss_cfg.m_group_number)
 		{
 			p_compound_cfg->m_vpss_cfg.m_group_number = av_register_vpss_group();
 		}
-		else
-		{
-			DBG_PRT("[%d] compound m_group_number is err\n", p_compound_cfg->m_vpss_cfg.m_group_number);
-		}
+// 		else
+// 		{
+// 			DBG_PRT("[%d] compound m_group_number is err\n", p_compound_cfg->m_vpss_cfg.m_group_number);
+// 		}
 		
 		
 		DBG_PRT("ui out vpss grp is %d\n", p_compound_cfg->m_vpss_cfg.m_group_number);
@@ -2599,6 +2599,7 @@ int av_startup()
 	av_start_ui_out(g_av_platform_ctx.m_cfg);
 	av_start_live_out(g_av_platform_ctx.m_cfg);
 	av_start_vir_vo(g_av_platform_ctx.m_cfg);
+	av_tde_startup();
 	//_申请通道参数空间
 	g_av_platform_ctx.m_local_channel_ptr = (channel_data_t *)calloc(1, VI_CHN_START + g_av_platform_ctx.m_vichn_cnt);
 	for (i = 0;i < g_av_platform_ctx.m_vichn_cnt; i++)
