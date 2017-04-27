@@ -204,6 +204,7 @@ int av_register_vpss_group()
 		{
 			s_vpss_grp_arry[i].m_used_status = 1;
 			vps_grp = s_vpss_grp_arry[i].m_vpss_grp;
+			break;
 		}
 	}
 	pthread_mutex_unlock(&g_av_platform_ctx.m_mtx);

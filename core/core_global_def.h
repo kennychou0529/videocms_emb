@@ -20,9 +20,19 @@ extern "C"
 #define RETURN_ERR_OPEN_FILE_FAILED -4
 #define RETURN_ERR_FILE_EMPTY -5
 
+
+#define BLACK_PRT "\033[30m"
+#define RED_PRT "\033[31m"
+#define GREEN_PRT "\033[32m"
+#define YELLOW_PRT "\033[33m"
+#define BLUE_PRT "\033[34m"
+#define END_PRT "\033[0m"
+
 #define __EN_DBG_
 #ifdef __EN_DBG_
-#define DBG_PRT printf 
+//#define DBG_PRT printf 
+#define DBG_PRT(format,...) printf(RED_PRT format END_PRT,  __FILE__, \
+	__func__, __LINE__, ##__VA_ARGS__ ) 
 #else
 #define DBG_PRT 
 #endif
