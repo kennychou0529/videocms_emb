@@ -10,7 +10,7 @@ extern "C"
 #define PLATFORM_FILE_PATH "/mnt/mtd/platform"
 #define CFG_FILE	"/mnt/mtd/app/config"
 
-#define VI_CHN_INFO "VI_CHN_INFO"
+#define VI_CHN_INFO "PhyChannel"//"VI_CHN_INFO"
 #define VPSS_INFO "VPSS_CHN_INFO"
 
 #define RETURN_OK 0
@@ -31,8 +31,7 @@ extern "C"
 #define __EN_DBG_
 #ifdef __EN_DBG_
 //#define DBG_PRT printf 
-#define DBG_PRT(format,...) printf(RED_PRT format END_PRT,  __FILE__, \
-	__func__, __LINE__, ##__VA_ARGS__ ) 
+#define DBG_PRT(format,...) printf(RED_PRT "%s:%s:%d--¡·" format END_PRT,  __FILE__, __func__, __LINE__, ##__VA_ARGS__) 
 #else
 #define DBG_PRT 
 #endif
