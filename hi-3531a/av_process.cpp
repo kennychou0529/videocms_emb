@@ -1697,7 +1697,156 @@ int av_stop_vpss(VPSS_GRP vpss_grp)
 
 int av_start_hdmi()
 {
+	frame_rate_type_t frame_rate_type;
+	resulotion_type_t resulotion_type;
+	int s32Ret;
+	HI_HDMI_INIT_PARA_S stHdmiPara;
+	HI_HDMI_ATTR_S      stAttr;
+	stHdmiPara.enForceMode = HI_HDMI_FORCE_HDMI;
+	stHdmiPara.pCallBackArgs = NULL;
+	stHdmiPara.pfnHdmiEventCallback = NULL;
+	HI_MPI_HDMI_Init(&stHdmiPara);
+	HI_MPI_HDMI_Open(HI_HDMI_ID_0);
+	HI_MPI_HDMI_GetAttr(HI_HDMI_ID_0, &stAttr);
+	stAttr.bEnableHdmi = HI_TRUE;
+	stAttr.bEnableVideo = HI_TRUE;
+	if (g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_out_dev_type & OUT_DEV_TYPE_HDMI)
+	{
+		frame_rate_type = g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_frame_rate_type;
+		resulotion_type = g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_resulotion_type;
+	}
+	else if (g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_out_dev_type & OUT_DEV_TYPE_HDMI)
+	{
+		frame_rate_type = g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_frame_rate_type;
+		resulotion_type = g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_resulotion_type;
+	}
+	{
 
+	}
+	if (FRAME_RATE_TYPE_60 == frame_rate_type)
+	{
+		if (RESULOTION_TYPE_1920X1080 == resulotion_type)
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_1080P_60;
+		}
+		else if (RESULOTION_TYPE_1440X900 == resulotion_type)
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_VESA_1440X900_60;
+		}
+		else if (RESULOTION_TYPE_1280X1024 == resulotion_type)
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_VESA_1280X1024_60;
+		}
+		else if (RESULOTION_TYPE_1280X720 == resulotion_type)
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_VESA_1280X720_60;
+		}
+		else if (RESULOTION_TYPE_1280X960 == resulotion_type)
+		{
+			//stVoPubAttr_hd1.enIntfSync = VO_OUTPUT_720P60;
+		}
+		else if (RESULOTION_TYPE_3840X2160 == resulotion_type)
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_3840X2160P_60;
+		}
+		else
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_1080P_60;
+		}
+	}
+	else if (FRAME_RATE_TYPE_50 == frame_rate_type)
+	{
+		if (RESULOTION_TYPE_1920X1080 == resulotion_type)
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_1080P_50;
+		}
+		// 		else if (RESULOTION_TYPE_1440X900 == resulotion_type)
+		// 		{
+		// 			stVoPubAttr_hd1.enIntfSync = VO_OUTPUT_1440x900_50;
+		// 			tmp_width = 1440; tmp_height = 900;
+		// 		}
+		// 		else if (RESULOTION_TYPE_1280X1024 == resulotion_type)
+		// 		{
+		// 			stVoPubAttr_hd1.enIntfSync = VO_OUTPUT_1280x1024_50;
+		// 			tmp_width = 1280; tmp_height = 1024;
+		// 		}
+		else if (RESULOTION_TYPE_1280X720 == resulotion_type)
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_720P_50;
+		}
+		else if (RESULOTION_TYPE_1280X960 == resulotion_type)
+		{
+			
+		}
+		else if (RESULOTION_TYPE_3840X2160 == resulotion_type)
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_3840X2160P_50;
+		}
+		else
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_1080P_50;
+		}
+	}
+	else if (FRAME_RATE_TYPE_30 == frame_rate_type)
+	{
+		if (RESULOTION_TYPE_1920X1080 == resulotion_type)
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_1080P_30;
+		}
+		else if (RESULOTION_TYPE_3840X2160 == resulotion_type)
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_3840X2160P_30;
+		}
+		else
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_1080P_30;
+		}
+	}
+	else if (FRAME_RATE_TYPE_25 == frame_rate_type)
+	{
+		if (RESULOTION_TYPE_1920X1080 == resulotion_type)
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_1080P_25;
+		}
+		else if (RESULOTION_TYPE_3840X2160 == resulotion_type)
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_3840X2160P_25;
+		}
+		else
+		{
+			stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_1080P_25;
+		}
+	}
+	else
+	{
+		stAttr.enVideoFmt = HI_HDMI_VIDEO_FMT_1080P_60;
+	}
+	stAttr.enVidOutMode = HI_HDMI_VIDEO_MODE_YCBCR444;
+	stAttr.enDeepColorMode = HI_HDMI_DEEP_COLOR_OFF;
+	stAttr.bxvYCCMode = HI_FALSE;
+	stAttr.bEnableAudio = HI_TRUE;
+	stAttr.enSoundIntf = HI_HDMI_SND_INTERFACE_I2S;
+	stAttr.bIsMultiChannel = (HI_BOOL)0;
+	stAttr.enSampleRate = HI_HDMI_SAMPLE_RATE_44K;
+	stAttr.enBitDepth = HI_HDMI_BIT_DEPTH_16;
+	stAttr.bEnableAviInfoFrame = HI_TRUE;
+	stAttr.bEnableAudInfoFrame = HI_TRUE;
+	stAttr.bEnableSpdInfoFrame = HI_FALSE;
+	stAttr.bEnableMpegInfoFrame = HI_FALSE;
+	stAttr.bDebugFlag = HI_FALSE;
+	stAttr.bHDCPEnable = HI_FALSE;
+	stAttr.b3DEnable = HI_FALSE;
+	s32Ret = HI_MPI_HDMI_SetAttr(HI_HDMI_ID_0, &stAttr);
+	if (s32Ret != HI_SUCCESS)
+	{
+		DBG_PRT("[%d]HI_MPI_HDMI_SetAttr failed with 0x%08X!\n",HI_HDMI_ID_0,s32Ret);
+	}
+	s32Ret = HI_MPI_HDMI_Start(HI_HDMI_ID_0);
+	if (s32Ret != HI_SUCCESS)
+	{
+		DBG_PRT("[%d]HI_MPI_HDMI_Start failed with 0x%08X!\n",HI_HDMI_ID_0,s32Ret);
+	}
+	DBG_PRT("HDMI start success.\n");
 	return AV_OK;
 }
 
@@ -2519,7 +2668,7 @@ int av_start_vir_vo(av_platform_cfg_t *av_platform_cfg)
 		if(AV_OK != av_start_vo_dev(p_compound_cfg->m_vo_dev_cfg, VoDev, VoLayer))
 			DBG_PRT("av_start_vir_vo dev %d is failed\n", i);
 		//===========================================
-		vo_chn_info.m_chn_id = VO_MAX_CHN_NUM - 1;
+		vo_chn_info.m_chn_id = 9/*VO_MAX_CHN_NUM - 1*/;
 		vo_chn_info.m_deflicker = 0;
 		vo_chn_info.m_layer_id = 0;
 		vo_chn_info.m_x = 0;
@@ -2631,7 +2780,7 @@ int av_init_cfg()
 	g_av_platform_ctx.m_filechn_cnt = 2;
 	g_av_platform_ctx.m_remotechn_cnt = 4;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_dev_id = VO_DEV_DHD0;	//DH0
-	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_out_dev_type = OUT_DEV_TYPE_VGA;
+	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_out_dev_type = OUT_DEV_TYPE_VGA | OUT_DEV_TYPE_BT1120;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_resulotion_type = RESULOTION_TYPE_1920X1080;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_frame_rate_type = FRAME_RATE_TYPE_60;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
@@ -2658,7 +2807,7 @@ int av_init_cfg()
 	g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_height = HD_HEIGHT;
 	//____________________________________________
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_dev_id = VO_DEV_DHD1;//DH1
-	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_out_dev_type = (OUT_DEV_TYPE_HDMI | OUT_DEV_TYPE_BT1120);
+	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_out_dev_type = (OUT_DEV_TYPE_HDMI);
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_resulotion_type = RESULOTION_TYPE_1920X1080;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_frame_rate_type = FRAME_RATE_TYPE_60;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
