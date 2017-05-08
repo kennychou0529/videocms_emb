@@ -923,9 +923,9 @@ int core_channel_init_cfg(int channel_index)
 	channel_cfg_t *p_chn_cfg = &p_chn_data->m_cfg;
 
 	memset(p_chn_cfg, 0, sizeof(channel_cfg_t));
-	p_chn_cfg->m_raw_fps = -1;
-	p_chn_cfg->m_raw_width = -1;
-	p_chn_cfg->m_raw_height = -1;
+	p_chn_cfg->m_raw_fps = 25;//-1;
+	p_chn_cfg->m_raw_width = 1920;//-1;
+	p_chn_cfg->m_raw_height = 1080;//-1;
 	p_chn_cfg->m_major_venc_fps = DEFAULT_MAJOR_FPS;
 	p_chn_cfg->m_major_venc_width = HD_WIDTH;
 	p_chn_cfg->m_major_venc_height = HD_HEIGHT;
@@ -994,11 +994,24 @@ int core_channel_local_setup()
 	{
 		p_chn_data = g_av_platform_ctx.m_all_channel_ptr[i];
 		p_chn_data->m_channel_type = CHANNEL_TYPE_LOCAL_CHANNEL;
+		p_chn_cfg = &p_chn_data->m_cfg;
 		if(AV_OK != (ret = core_channel_load_cfg(i)))
 		{
 			DBG_PRT("core_channel_load_cfg failed with %d\n", ret);
 			core_channel_init_cfg(i);
 		}
+		p_chn_data->m_raw_fps = p_chn_cfg->m_raw_fps;
+		p_chn_data->m_raw_width = p_chn_cfg->m_raw_width;
+		p_chn_data->m_raw_height = p_chn_cfg->m_raw_height;
+		p_chn_data->m_major_venc_fps = p_chn_cfg->m_major_venc_fps;
+		p_chn_data->m_major_venc_width = p_chn_cfg->m_major_venc_width;
+		p_chn_data->m_major_venc_height = p_chn_cfg->m_major_venc_height;
+		p_chn_data->m_minor_venc_fps = p_chn_cfg->m_minor_venc_fps;
+		p_chn_data->m_minor_venc_width = p_chn_cfg->m_minor_venc_width;
+		p_chn_data->m_minor_venc_height = p_chn_cfg->m_minor_venc_height;
+		p_chn_data->m_minor2_venc_fps = p_chn_cfg->m_minor2_venc_fps;
+		p_chn_data->m_minor2_venc_width = p_chn_cfg->m_minor2_venc_width;
+		p_chn_data->m_minor2_venc_height = p_chn_cfg->m_minor2_venc_height;
 	}
 	return RETURN_OK;
 }

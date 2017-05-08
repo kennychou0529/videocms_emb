@@ -793,7 +793,7 @@ int av_start_compound_vo_chn(compound_chn_t compound_chn)
 	for (i = 0; i < p_compound_cfg->m_count; i++)
 	{
 		//_源不存在
-		if (p_compound_cfg->m_chn[i] < VI_CHN_START && p_compound_cfg->m_chn[i] >= chn_cnt)
+		if (p_compound_cfg->m_chn[i] < VI_CHN_START || p_compound_cfg->m_chn[i] >= chn_cnt)
 		{
 			err_cnt++;
 			p_compound_cfg->m_chn[i] = -1;
@@ -1720,9 +1720,6 @@ int av_start_hdmi()
 		frame_rate_type = g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_frame_rate_type;
 		resulotion_type = g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_resulotion_type;
 	}
-	{
-
-	}
 	if (FRAME_RATE_TYPE_60 == frame_rate_type)
 	{
 		if (RESULOTION_TYPE_1920X1080 == resulotion_type)
@@ -2614,7 +2611,7 @@ int av_start_live_out(av_platform_cfg_t av_platform_cfg)
 
 	stDestChn.enModId   = HI_ID_VOU;
 	stDestChn.s32ChnId  = vo_chn_info.m_chn_id;
-	stDestChn.s32DevId  = VoLayer;
+	stDestChn.s32DevId  = VoDev;
 	HI_MPI_SYS_Bind(&stSrcChn, &stDestChn);
 
 	return AV_OK;
@@ -2677,8 +2674,8 @@ int av_start_vir_vo(av_platform_cfg_t *av_platform_cfg)
 		vo_chn_info.m_height = 1080;
 		av_start_vo_chn(vo_chn_info, VoLayer);
 		HI_MPI_VO_SetChnFrameRate(VoLayer, vo_chn_info.m_chn_id, 60);
-		if(AV_OK != av_start_compound_vo_chn((compound_chn_t)i))
-			DBG_PRT("av_start_compound_vo_chn is failed\n");
+		if(AV_OK != (s32Ret = av_start_compound_vo_chn((compound_chn_t)i)))
+			DBG_PRT("av_start_compound_vo_chn is failed with %d\n", s32Ret);
 		//===========================================
 		//if (-1 == p_compound_cfg->m_vpss_cfg.m_group_number)
 		{
@@ -2707,7 +2704,6 @@ int av_start_vir_vo(av_platform_cfg_t *av_platform_cfg)
 		{
 			av_start_vpss(SPECIAL_VIR3_CHN, p_compound_cfg->m_vpss_cfg.m_group_number);
 		}
-	
 		stSrcChn.enModId    = HI_ID_VOU;
 		stSrcChn.s32DevId   = VoDev;
 		stSrcChn.s32ChnId   = 0;
@@ -2721,6 +2717,29 @@ int av_start_vir_vo(av_platform_cfg_t *av_platform_cfg)
 			DBG_PRT("[%d]HI_MPI_SYS_Bind VOU(%d[%d]) >> VPSS(%d[%d]) failed with %08X!\n", i, stSrcChn.s32DevId, stSrcChn.s32ChnId, stDestChn.s32DevId, stDestChn.s32ChnId, s32Ret);
 			return HI_FAILURE;
 		}
+		/**********测试往vpss发送数据失败是不是因为vpss没有绑定下级的原因****/
+		channel_data_t *p_chn_dat;
+		channel_cfg_t *p_chn_cfg;
+		p_chn_dat = g_av_platform_ctx.m_all_channel_ptr[i];
+		p_chn_cfg = &p_chn_dat->m_cfg;
+		vo_chn_info.m_chn_id = i;
+		vo_chn_info.m_deflicker = 0;
+		vo_chn_info.m_layer_id = 0;
+		vo_chn_info.m_x = i*416;
+		vo_chn_info.m_y = i*240;
+		vo_chn_info.m_width = 416;
+		vo_chn_info.m_height = 240;
+		av_start_vo_chn(vo_chn_info, 0);
+		MPP_CHN_S stSrcChn, stDestChn;
+		stSrcChn.enModId    = HI_ID_VPSS;
+		stSrcChn.s32DevId   = p_chn_cfg->m_vpss_cfg.m_group_number;
+		stSrcChn.s32ChnId   = VPSS_CHN_TYPE_RENDER;
+
+		stDestChn.enModId   = HI_ID_VOU;
+		stDestChn.s32ChnId  = vo_chn_info.m_chn_id;
+		stDestChn.s32DevId  = 0;
+		HI_MPI_SYS_Bind(&stSrcChn, &stDestChn);
+		//**************************************************************
 	}
 
 	return AV_OK;
@@ -2780,7 +2799,7 @@ int av_init_cfg()
 	g_av_platform_ctx.m_filechn_cnt = 2;
 	g_av_platform_ctx.m_remotechn_cnt = 4;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_dev_id = VO_DEV_DHD0;	//DH0
-	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_out_dev_type = OUT_DEV_TYPE_VGA | OUT_DEV_TYPE_BT1120;
+	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_out_dev_type = /*OUT_DEV_TYPE_VGA | */OUT_DEV_TYPE_BT1120 |OUT_DEV_TYPE_HDMI;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_resulotion_type = RESULOTION_TYPE_1920X1080;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_frame_rate_type = FRAME_RATE_TYPE_60;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_ui.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
@@ -2807,7 +2826,7 @@ int av_init_cfg()
 	g_av_platform_ctx.m_cfg.m_vpss_cfg_ui.m_max_height = HD_HEIGHT;
 	//____________________________________________
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_dev_id = VO_DEV_DHD1;//DH1
-	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_out_dev_type = (OUT_DEV_TYPE_HDMI);
+	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_out_dev_type = (OUT_DEV_TYPE_VGA/* | OUT_DEV_TYPE_HDMI*/);
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_resulotion_type = RESULOTION_TYPE_1920X1080;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_frame_rate_type = FRAME_RATE_TYPE_60;
 	g_av_platform_ctx.m_cfg.m_vo_cfg_live.m_pixel_fmt_type = PIXEL_FMT_TYPE_YUV420;
@@ -2837,6 +2856,7 @@ int av_init_cfg()
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vpss_cfg.m_vpss_bind_cnt[1] = 0;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vpss_cfg.m_vpss_bind_cnt[2] = 0;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE].m_vpss_cfg.m_vpss_bind_cnt[3] = 0;
+	av_handler_set_com_rect_by_mode(&g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_MOVIE], DIVISON_MODE_0);
 	//pvw
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_width = 960;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_height = 540;
@@ -2861,6 +2881,7 @@ int av_init_cfg()
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vpss_cfg.m_vpss_bind_cnt[1] = 0;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vpss_cfg.m_vpss_bind_cnt[2] = 0;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW].m_vpss_cfg.m_vpss_bind_cnt[3] = 0;
+	av_handler_set_com_rect_by_mode(&g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_PVW], DIVISON_MODE_0);
 	//vp
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_width = HD_WIDTH;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_height = HD_HEIGHT;
@@ -2885,6 +2906,7 @@ int av_init_cfg()
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_vpss_cfg.m_vpss_bind_cnt[1] = 0;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_vpss_cfg.m_vpss_bind_cnt[2] = 0;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP].m_vpss_cfg.m_vpss_bind_cnt[3] = 0;
+	av_handler_set_com_rect_by_mode(&g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_VP], DIVISON_MODE_4);
 	//effect
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_width = HD_WIDTH;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_height = HD_HEIGHT;
@@ -2909,6 +2931,7 @@ int av_init_cfg()
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_vpss_cfg.m_vpss_bind_cnt[1] = 0;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_vpss_cfg.m_vpss_bind_cnt[2] = 0;
 	g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF].m_vpss_cfg.m_vpss_bind_cnt[3] = 0;
+	av_handler_set_com_rect_by_mode(&g_av_platform_ctx.m_cfg.m_compound_cfg[COMPOUND_CHN_EFF], DIVISON_MODE_4);
 
 	return AV_OK;
 }
@@ -2943,7 +2966,7 @@ int av_startup()
 	av_start_hdmi();
 	av_start_ui_out(g_av_platform_ctx.m_cfg);
 	av_start_live_out(g_av_platform_ctx.m_cfg);
-	av_start_vir_vo(&g_av_platform_ctx.m_cfg);
+	//av_start_vir_vo(&g_av_platform_ctx.m_cfg);
 	//_申请通道参数空间
 	g_av_platform_ctx.m_local_channel_ptr = (channel_data_t *)calloc(1, (VI_CHN_START + g_av_platform_ctx.m_vichn_cnt) * sizeof(channel_data_t));
 	for (i = 0;i < VI_CHN_START + g_av_platform_ctx.m_vichn_cnt; i++)
@@ -2976,6 +2999,7 @@ int av_startup()
 		DBG_PRT("chn[%d] vpss[%d]\n",i, p_chn_cfg->m_vpss_cfg.m_group_number);
 		av_start_vpss(i, p_chn_cfg->m_vpss_cfg.m_group_number);
 	}
+	av_start_vir_vo(&g_av_platform_ctx.m_cfg);
 	av_tde_startup();
 	return AV_OK;
 }

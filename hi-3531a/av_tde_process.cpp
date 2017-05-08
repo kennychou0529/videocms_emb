@@ -35,15 +35,15 @@ void *av_tde_process_thread(void * arg)
 		s32Ret = HI_MPI_VPSS_SendFrame(p_chn_cfg->m_vpss_cfg.m_group_number, &pstVideoFrame,  0);
 		if(s32Ret != HI_SUCCESS)
 		{
-			DBG_PRT("compound[%d] chn_group[%d] HI_MPI_VPSS_UserSendFrameTimeout failed with 0x%08X\n", tde_effect_data->m_vo_id,p_chn_cfg->m_vpss_cfg.m_group_number, s32Ret);
+			DBG_PRT("compound[%d] chn_group[%d] HI_MPI_VPSS_SendFrame failed with 0x%08X\n", tde_effect_data->m_vo_id,p_chn_cfg->m_vpss_cfg.m_group_number, s32Ret);
 		}
 		//_发给直播输出设备绑定的vpss
-		if (1 == tde_effect_data->m_vo_id)
+		if (0 == tde_effect_data->m_vo_id)
 		{
 			s32Ret = HI_MPI_VPSS_SendFrame(g_av_platform_ctx.m_cfg.m_vpss_cfg_live.m_group_number, &pstVideoFrame,  0);
 			if(s32Ret != HI_SUCCESS)
 			{
-				DBG_PRT("compound[%d]HI_MPI_VPSS_UserSendFrameTimeout failed with 0x%08X\n", tde_effect_data->m_vo_id, s32Ret);
+				DBG_PRT("compound[%d]HI_MPI_VPSS_SendFrame failed with 0x%08X\n", tde_effect_data->m_vo_id, s32Ret);
 			}
 		}
 		s32Ret = HI_MPI_VPSS_ReleaseChnFrame (p_compoun_cfg->m_vpss_cfg.m_group_number, VPSS_CHN_TYPE_RENDER,  &pstVideoFrame);
