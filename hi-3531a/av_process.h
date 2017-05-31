@@ -10,6 +10,8 @@
 #define AV_ERR_PARSE_JSON_FAILED	-6
 #define AV_ERR_OPEN_JSON_FAILED		-7
 #define AV_ERR_WRITE_FILE_FAILD		-8
+#define AV_ERR_FILE_SIZE_INVALID	-9
+#define AV_ERR_BUSY					-10
 
 
 #define BT656    0
@@ -102,6 +104,7 @@ int  av_shutdown();
 int av_save_cfg();
 int av_set_compound_vo_rect(compound_chn_t compound_chn, compound_cfg_t *pset_compound_cfg);
 int av_set_compound_vo_chn(compound_chn_t compound_chn, compound_cfg_t *pset_compound_cfg);
+int av_get_vodev_and_volayer_by_id(int *VoDev, int *VoLayer, int dev_id);
 
 extern av_platform_ctx_t g_av_platform_ctx;
 

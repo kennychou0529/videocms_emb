@@ -1,6 +1,8 @@
 #include "../includes.h"
 #include <string.h>
+#include <stdio.h>
 
+int av_start_vo_chn(vo_chn_info_t vo_chn_info, VO_LAYER vo_layer);
 int av_handler_set_com_rect_by_mode(compound_cfg_t *p_set_chn, divison_mode_t division_mode) //»­ÖÐ»­Ä£Ê½
 {
 	int i = 0;
@@ -193,6 +195,70 @@ int av_handler_set_com_chn(compound_chn_t compound_chn, int index, int chn)
 		av_set_compound_vo_chn(compound_chn, &tmp_compound_cfg);
 	}
 	av_save_cfg();
+
+	return AV_OK;
+}
+
+int av_bind_vo_and_vpss(int VpssGrp, int VpssChn, int VoDev, int VoChn)
+{
+	HI_S32 s32Ret = HI_SUCCESS;
+	MPP_CHN_S stSrcChn, stDestChn;
+
+	stSrcChn.enModId    = HI_ID_VPSS;
+	stSrcChn.s32DevId   = VpssGrp;
+	stSrcChn.s32ChnId   = VpssChn;
+
+	stDestChn.enModId   = HI_ID_VOU;
+	stDestChn.s32ChnId  = VoChn;
+	stDestChn.s32DevId  = VoDev;
+	if(HI_SUCCESS != (s32Ret = HI_MPI_SYS_Bind(&stSrcChn, &stDestChn)))
+	{
+		DBG_PRT("VpssGrp[%d] VpssChn[%d] VoDev[%d] VoChn[%d] HI_MPI_SYS_Bind failed with 0x%X\n", VpssGrp, VpssChn, VoDev, VoChn, s32Ret);
+		return AV_FALSE;
+	}
+
+	return AV_OK;
+}
+
+int av_unbind_vo_and_vpss(int VpssGrp, int VpssChn, int VoDev, int VoChn)
+{
+	HI_S32 s32Ret = HI_SUCCESS;
+	MPP_CHN_S stSrcChn, stDestChn;
+
+	stSrcChn.enModId    = HI_ID_VPSS;
+	stSrcChn.s32DevId   = VpssGrp;
+	stSrcChn.s32ChnId   = VpssChn;
+
+	stDestChn.enModId   = HI_ID_VOU;
+	stDestChn.s32ChnId  = VoChn;
+	stDestChn.s32DevId  = VoDev;
+	if(HI_SUCCESS != (s32Ret = HI_MPI_SYS_UnBind(&stSrcChn, &stDestChn)))
+	{
+		DBG_PRT("VpssGrp[%d] VpssChn[%d] VoDev[%d] VoChn[%d] HI_MPI_SYS_UnBind failed with %d\n", VpssGrp, VpssChn, VoDev, VoChn, s32Ret);
+		return AV_FALSE;
+	}
+
+	return AV_OK;
+}
+
+int render_display_callback(RENDER_DIS_CFG_S render_dis_cfg)
+{
+	vo_chn_info_t vo_chn_info;
+	VO_DEV VoDev;
+	VO_LAYER VoLayer;
+
+	av_get_vodev_and_volayer_by_id(&VoDev, &VoLayer, render_dis_cfg.m_client_info.m_VoDev);
+	vo_chn_info.m_chn_id = render_dis_cfg.m_vo_chn;
+	vo_chn_info.m_deflicker = 0;
+	vo_chn_info.m_layer_id = 0;
+	vo_chn_info.m_x = render_dis_cfg.m_rect.m_s32X;
+	vo_chn_info.m_y = render_dis_cfg.m_rect.m_s32Y;
+	vo_chn_info.m_width = render_dis_cfg.m_rect.m_u32Width;
+	vo_chn_info.m_height = render_dis_cfg.m_rect.m_u32Height;
+	av_start_vo_chn(vo_chn_info, VoLayer);
+	HI_MPI_VO_SetChnFrameRate(VoLayer, vo_chn_info.m_chn_id, 60);
+
+	av_bind_vo_and_vpss(render_dis_cfg.m_client_info.m_VpssGrp, render_dis_cfg.m_client_info.m_VpssChn, render_dis_cfg.m_client_info.m_VoDev, render_dis_cfg.m_vo_chn);
 
 	return AV_OK;
 }

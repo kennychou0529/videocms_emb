@@ -983,12 +983,22 @@ int core_channel_uninit_cfg()
 	return RETURN_OK;
 }
 
-int core_channel_local_setup()
+
+
+int core_channel_local_chn_setup()
 {
 	int i, ret;
 	int chn_cnt = VI_CHN_START + g_av_platform_ctx.m_vichn_cnt;
 	channel_data_t *p_chn_data;
 	channel_cfg_t *p_chn_cfg;
+
+	//_申请通道参数空间
+	g_av_platform_ctx.m_local_channel_ptr = (channel_data_t *)calloc(1, (VI_CHN_START + g_av_platform_ctx.m_vichn_cnt) * sizeof(channel_data_t));
+	for (i = 0;i < VI_CHN_START + g_av_platform_ctx.m_vichn_cnt; i++)
+	{
+		g_av_platform_ctx.m_all_channel_ptr[i] = &(g_av_platform_ctx.m_local_channel_ptr[i]);
+	}
+	g_av_platform_ctx.m_local_chn_index_offset = 0;
 
 	for (i = 0; i < chn_cnt;i++)
 	{
@@ -1013,10 +1023,29 @@ int core_channel_local_setup()
 		p_chn_data->m_minor2_venc_width = p_chn_cfg->m_minor2_venc_width;
 		p_chn_data->m_minor2_venc_height = p_chn_cfg->m_minor2_venc_height;
 	}
+	return chn_cnt;
+}
+
+int core_channel_local_chn_desetup()
+{
+
 	return RETURN_OK;
 }
 
-int core_channel_local_desetup()
+int core_channel_file_chn_setup()
+{
+	int i = 0;
+	g_av_platform_ctx.m_file_channel_ptr = (channel_data_t *)calloc(1, g_av_platform_ctx.m_filechn_cnt * sizeof(channel_data_t));
+	for (i = 0; i < g_av_platform_ctx.m_filechn_cnt;i++)
+	{
+		g_av_platform_ctx.m_all_channel_ptr[VI_CHN_START + g_av_platform_ctx.m_vichn_cnt + i] = &(g_av_platform_ctx.m_file_channel_ptr[i]);
+	}
+	g_av_platform_ctx.m_file_chn_index_offset = VI_CHN_START + g_av_platform_ctx.m_vichn_cnt;
+
+	return g_av_platform_ctx.m_filechn_cnt;
+}
+
+int core_channel_file_chn_desetup()
 {
 
 	return RETURN_OK;

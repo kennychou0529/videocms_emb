@@ -111,7 +111,6 @@ int av_tde_unint()
 int av_tde_startup()
 {
 	int i;
-
 	memset(&g_tde_ctx, 0 ,sizeof(g_tde_ctx));
 	for (i = 0;i < VIR_VO_DEV_MAX;i++)
 	{

@@ -6,6 +6,9 @@ extern "C"
 {
 #endif
 
+#define TRUE 1
+#define FALSE 0
+
 #define UPDATE_FILE	"/mnt/mtd/update.ini"
 #define PLATFORM_FILE_PATH "/mnt/mtd/platform"
 #define CFG_FILE	"/mnt/mtd/app/config"
@@ -58,6 +61,8 @@ extern "C"
 	return Ret;\
 }\
 	}while(0)
+
+#define ALIGN_TWO(num) ((num)&(~0x1))
 
 	//#define SAMPLE_GLOBAL_NORM	    VIDEO_ENCODING_MODE_PAL
 #define SAMPLE_PIXEL_FORMAT         PIXEL_FORMAT_YUV_SEMIPLANAR_422

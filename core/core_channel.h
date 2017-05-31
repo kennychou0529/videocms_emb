@@ -131,6 +131,7 @@ typedef struct _channel_data_s
 {
 	channel_type_e m_channel_type;			//_通道类型
 	channel_status_e m_channel_stat;		//_通道状态
+	int m_render_id;
 	char m_has_audio;						//_是否有视频
 	char m_has_vodeo;						//_是否有音频
 	//_输入video信息
@@ -158,11 +159,19 @@ typedef struct _channel_data_s
 	int m_minor_vpss_chn;
 	int m_minor2_vpss_chn;
 	int m_render_vpss_chn;
+	pthread_t m_video_thread;
+	pthread_t m_audio_thread;
+	void *m_major_shbuf;
+	void *m_minor_shbuf;
+	void *m_minor2_shbuf;
+	void *m_snap_shbuf;
 	channel_cfg_t m_cfg;
 }channel_data_t, *pchannel_data_t;
 
-int core_channel_local_setup();
-int core_channel_local_desetup();
+int core_channel_local_chn_setup();
+int core_channel_local_chn_desetup();
+int core_channel_file_chn_setup();
+int core_channel_file_chn_desetup();
 int core_channel_uninit_cfg();
 int core_channel_init_cfg();
 int core_channel_load_cfg();
